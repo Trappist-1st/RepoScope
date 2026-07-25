@@ -1,0 +1,109 @@
+{
+  "java_pkg/Hello.java": [
+    {
+      "name": "Hello",
+      "kind": "class",
+      "start_line": 3,
+      "end_line": 11,
+      "language": "java",
+      "parent_name": null
+    },
+    {
+      "name": "greet",
+      "kind": "method",
+      "start_line": 4,
+      "end_line": 6,
+      "language": "java",
+      "parent_name": "Hello"
+    },
+    {
+      "name": "shout",
+      "kind": "method",
+      "start_line": 8,
+      "end_line": 10,
+      "language": "java",
+      "parent_name": "Hello"
+    }
+  ],
+  "js_pkg/main.ts": [
+    {
+      "name": "main",
+      "kind": "function",
+      "start_line": 3,
+      "end_line": 6,
+      "language": "typescript",
+      "parent_name": null
+    }
+  ],
+  "js_pkg/util.js": [
+    {
+      "name": "add",
+      "kind": "function",
+      "start_line": 1,
+      "end_line": 3,
+      "language": "javascript",
+      "parent_name": null
+    },
+    {
+      "name": "Calculator",
+      "kind": "class",
+      "start_line": 5,
+      "end_line": 9,
+      "language": "javascript",
+      "parent_name": null
+    },
+    {
+      "name": "multiply",
+      "kind": "method",
+      "start_line": 6,
+      "end_line": 8,
+      "language": "javascript",
+      "parent_name": "Calculator"
+    }
+  ],
+  "py_pkg/__init__.py": [],
+  "py_pkg/a.py": [
+    {
+      "name": "greet",
+      "kind": "function",
+      "start_line": 4,
+      "end_line": 5,
+      "language": "python",
+      "parent_name": null
+    },
+    {
+      "name": "Helper",
+      "kind": "class",
+      "start_line": 8,
+      "end_line": 13,
+      "language": "python",
+      "parent_name": null
+    },
+    {
+      "name": "name",
+      "kind": "method",
+      "start_line": 9,
+      "end_line": 10,
+      "language": "python",
+      "parent_name": "Helper"
+    },
+    {
+      "name": "shout",
+      "kind": "method",
+      "start_line": 12,
+      "end_line": 13,
+      "language": "python",
+      "parent_name": "Helper"
+    }
+  ],
+  "py_pkg/b.py": [
+    {
+      "name": "run",
+      "kind": "function",
+      "start_line": 6,
+      "end_line": 8,
+      "language": "python",
+      "parent_name": null
+    }
+  ]
+}

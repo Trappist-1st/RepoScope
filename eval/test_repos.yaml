@@ -1,0 +1,49 @@
+# Test repositories for Phase-6 evaluation
+#
+# Fill this in as you pick 15–20 repos. The retrieval eval script primarily
+# reads repo_url / repo_path from each QA row; this file is a checklist /
+# registry so you don't lose track of what you planned to cover.
+
+version: 1
+notes: >
+  Aim for language + size diversity (Python web, Java/Spring, JS/TS frontend,
+  a mid-size library). Prefer repos you already understand so gold spans are
+  trustworthy.
+
+repos:
+  - id: sample-fixture
+    url: null
+    local_path: tests/fixtures/sample_repo
+    languages: [python, javascript, typescript, java]
+    status: smoke  # smoke | planned | cloned | annotated
+    notes: Built-in fixture for harness smoke tests
+
+  # --- copy/paste templates below ---
+  - id: requests
+    url: https://github.com/psf/requests.git
+    local_path: data/eval_repos/requests
+    languages: [python]
+    status: planned
+    notes: HTTP client; good for Session / adapter dependency questions
+
+  - id: httpx
+    url: https://github.com/encode/httpx.git
+    local_path: data/eval_repos/httpx
+    languages: [python]
+    status: planned
+    notes: Async/sync client; compare with requests-style questions
+
+  # - id: my-spring-demo
+  #   url: https://github.com/<you>/<repo>.git
+  #   local_path: data/eval_repos/my-spring-demo
+  #   languages: [java]
+  #   status: planned
+  #   notes: Microservice entrypoints + DI wiring
+
+coverage_targets:
+  question_types:
+    summary: "architecture / module overview"
+    dependency: "who imports / calls / wires X"
+    refactor: "how to improve structure of X"
+  suggested_questions_per_repo: "3-5"
+  suggested_total_questions: "45-80 (15-20 repos × 3-5)"

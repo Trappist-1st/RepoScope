@@ -1,0 +1,30 @@
+# RepoScope retrieval defaults — swap models/backends without code changes.
+# Env overrides: REPOSCOPE_VECTOR_BACKEND, REPOSCOPE_QDRANT_URL, REPOSCOPE_RETRIEVAL_CONFIG
+
+vector_backend: inmemory  # inmemory | qdrant
+qdrant_url: http://localhost:6333
+# MUST stay identical for InMemory and Qdrant so eval numbers are comparable.
+distance: cosine
+
+embedding:
+  provider: sentence-transformers  # sentence-transformers | hash (tests)
+  model: all-MiniLM-L6-v2
+
+rerank:
+  enabled: true
+  provider: cross-encoder  # cross-encoder | identity (skip / tests)
+  model: BAAI/bge-reranker-base
+
+fusion:
+  default: rrf  # rrf | weighted
+  rrf_k: 60
+  weight_vector: 0.5
+  weight_bm25: 0.5
+
+defaults:
+  top_k_vector: 20
+  top_k_bm25: 20
+  rerank_top_n: 8
+  final_top_n: 5
+  graph_expand: true
+  graph_expand_limit: 4

@@ -1,0 +1,79 @@
+[
+  {
+    "chunk_id": "0a57400031961e65",
+    "file_path": "java_pkg/Hello.java",
+    "start_line": 3,
+    "end_line": 11,
+    "content": "public class Hello {\n    public static String greet(String name) {\n        return \"hello, \" + name;\n    }\n\n    public String shout(String name) {\n        return greet(name).toUpperCase();\n    }\n}\n",
+    "kind": "class",
+    "symbol_name": "Hello",
+    "language": "java",
+    "content_hash": "5984ebe78819653efa47d99cf5ab77b174cdeddd2eb21e45133df1bfb434fce6"
+  },
+  {
+    "chunk_id": "5c36aa3e594d2d09",
+    "file_path": "js_pkg/main.ts",
+    "start_line": 3,
+    "end_line": 6,
+    "content": "export function main(): number {\n  const calc = new Calculator();\n  return add(1, calc.multiply(2, 3));\n}\n",
+    "kind": "function",
+    "symbol_name": "main",
+    "language": "typescript",
+    "content_hash": "bcf10bdb1d857c67dae3f60f1637fd1f50ccb944d0b22f36ab0d2793eca037db"
+  },
+  {
+    "chunk_id": "5f273e9fe41346c9",
+    "file_path": "js_pkg/util.js",
+    "start_line": 1,
+    "end_line": 3,
+    "content": "export function add(a, b) {\n  return a + b;\n}\n",
+    "kind": "function",
+    "symbol_name": "add",
+    "language": "javascript",
+    "content_hash": "5b63136552577a64d788dc3cd4552739d0d60f9e1adb63ec4dfb6932d56fc75d"
+  },
+  {
+    "chunk_id": "a1c690f094373b19",
+    "file_path": "js_pkg/util.js",
+    "start_line": 5,
+    "end_line": 9,
+    "content": "export class Calculator {\n  multiply(a, b) {\n    return a * b;\n  }\n}\n",
+    "kind": "class",
+    "symbol_name": "Calculator",
+    "language": "javascript",
+    "content_hash": "af70b59d0998d7b440c8a83cda77ec901a0a13f84b920827a94832073fab5e3d"
+  },
+  {
+    "chunk_id": "ccb80a3c32b830b1",
+    "file_path": "py_pkg/a.py",
+    "start_line": 4,
+    "end_line": 5,
+    "content": "def greet(name: str) -> str:\n    return f\"hello, {name}\"\n",
+    "kind": "function",
+    "symbol_name": "greet",
+    "language": "python",
+    "content_hash": "afd3fd8a221301f0b7adb1d38d4535afb244e66303c942dbade08958a4c865fd"
+  },
+  {
+    "chunk_id": "775d31f905e36153",
+    "file_path": "py_pkg/a.py",
+    "start_line": 8,
+    "end_line": 13,
+    "content": "class Helper:\n    def name(self) -> str:\n        return \"reposcope\"\n\n    def shout(self) -> str:\n        return greet(self.name()).upper()\n",
+    "kind": "class",
+    "symbol_name": "Helper",
+    "language": "python",
+    "content_hash": "93c368609ad2fc251bdb11433cc4bd95765dec1a4a35764e219502c3c51a1152"
+  },
+  {
+    "chunk_id": "749cdb52b3d7ceff",
+    "file_path": "py_pkg/b.py",
+    "start_line": 6,
+    "end_line": 8,
+    "content": "def run() -> str:\n    helper = Helper()\n    return greet(helper.name())\n",
+    "kind": "function",
+    "symbol_name": "run",
+    "language": "python",
+    "content_hash": "4a928d695f0d72b79742381bdee02633636db5a070de7cfa2303ccc7e19222ef"
+  }
+]

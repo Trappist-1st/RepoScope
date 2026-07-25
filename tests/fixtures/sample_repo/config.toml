@@ -1,0 +1,3 @@
+# not source code — used only by unit tests via Chunker directly
+title = "config"
+value = 1

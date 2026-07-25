@@ -1,0 +1,66 @@
+{
+  "repo_id": "2ac4845323c5974c",
+  "commit_hash": null,
+  "file_edges": [
+    {
+      "source": "js_pkg/main.ts",
+      "target": "js_pkg/util.js",
+      "edge_type": "imports"
+    },
+    {
+      "source": "py_pkg/b.py",
+      "target": "py_pkg/a.py",
+      "edge_type": "imports"
+    }
+  ],
+  "call_edges": [
+    {
+      "caller": "java_pkg/Hello.java::Hello",
+      "callee": "java_pkg/Hello.java::Hello.greet",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "js_pkg/main.ts::main",
+      "callee": "js_pkg/util.js::add",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "js_pkg/util.js::add",
+      "callee": "js_pkg/util.js::add",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "js_pkg/util.js::Calculator",
+      "callee": "js_pkg/util.js::Calculator.multiply",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "py_pkg/a.py::Helper",
+      "callee": "py_pkg/a.py::greet",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "py_pkg/a.py::Helper",
+      "callee": "py_pkg/a.py::Helper.name",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "py_pkg/b.py::run",
+      "callee": "py_pkg/a.py::Helper",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "py_pkg/b.py::run",
+      "callee": "py_pkg/a.py::greet",
+      "edge_type": "calls",
+      "same_file": false
+    }
+  ]
+}

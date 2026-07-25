@@ -1,0 +1,3040 @@
+{
+  "repo_id": "8efad3c5a3467b63",
+  "commit_hash": "69f84847045bef7a849cc994a26fe7ba8a169e95",
+  "file_edges": [
+    {
+      "source": "src/requests/__init__.py",
+      "target": "src/requests/__version__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/__init__.py",
+      "target": "src/requests/api.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/__init__.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/__init__.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/__init__.py",
+      "target": "src/requests/sessions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/__init__.py",
+      "target": "src/requests/status_codes.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/_internal_utils.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/_types.py",
+      "target": "src/requests/auth.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/_types.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/_types.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/_types.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/_types.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/auth.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/adapters.py",
+      "target": "src/requests/utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/api.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/api.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/auth.py",
+      "target": "src/requests/_internal_utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/auth.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/auth.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/auth.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/auth.py",
+      "target": "src/requests/utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/compat.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/cookies.py",
+      "target": "src/requests/_internal_utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/cookies.py",
+      "target": "src/requests/_types.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/cookies.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/cookies.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/exceptions.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/exceptions.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/help.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/hooks.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/hooks.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/_internal_utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/adapters.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/auth.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/hooks.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/status_codes.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/models.py",
+      "target": "src/requests/utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/packages.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/_internal_utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/_types.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/adapters.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/auth.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/hooks.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/status_codes.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/sessions.py",
+      "target": "src/requests/utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/status_codes.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/structures.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/__version__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/_internal_utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/_types.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "src/requests/utils.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/__init__.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/conftest.py",
+      "target": "tests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/conftest.py",
+      "target": "tests/testserver/server.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_adapters.py",
+      "target": "src/requests/adapters.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_help.py",
+      "target": "src/requests/help.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_lowlevel.py",
+      "target": "tests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_lowlevel.py",
+      "target": "tests/testserver/server.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_lowlevel.py",
+      "target": "tests/utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/adapters.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/auth.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/exceptions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/hooks.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/models.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/sessions.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "tests/__init__.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "tests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "tests/testserver/server.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_requests.py",
+      "target": "tests/utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_structures.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_testserver.py",
+      "target": "tests/testserver/server.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_utils.py",
+      "target": "src/requests/_internal_utils.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_utils.py",
+      "target": "src/requests/cookies.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_utils.py",
+      "target": "src/requests/structures.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_utils.py",
+      "target": "tests/compat.py",
+      "edge_type": "imports"
+    },
+    {
+      "source": "tests/test_utils.py",
+      "target": "tests/utils.py",
+      "edge_type": "imports"
+    }
+  ],
+  "call_edges": [
+    {
+      "caller": "docs/_themes/flask_theme_support.py::FlaskyStyle",
+      "callee": "docs/_themes/flask_theme_support.py::FlaskyStyle",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/__init__.py::__module__",
+      "callee": "src/requests/__init__.py::check_compatibility",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/__init__.py::__module__",
+      "callee": "src/requests/__init__.py::_check_cryptography",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::SOCKSProxyManager",
+      "callee": "src/requests/exceptions.py::InvalidSchema",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::BaseAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.init_poolmanager",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/utils.py::get_auth_from_url",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::SOCKSProxyManager",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.proxy_headers",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/models.py::Response",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/utils.py::get_encoding_from_headers",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/cookies.py::extract_cookies_to_jar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::_urllib3_request_context",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/utils.py::select_proxy",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.build_connection_pool_key_attributes",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::InvalidURL",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/utils.py::prepend_scheme_if_needed",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::InvalidProxyURL",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.proxy_manager_for",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/utils.py::urldefragauth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/auth.py::_basic_auth_str",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.get_connection_with_tls_context",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.cert_verify",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.request_url",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.add_headers",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::ConnectionError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::ConnectTimeout",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::RetryError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::ProxyError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::SSLError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::ReadTimeout",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/exceptions.py::InvalidHeader",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/adapters.py::HTTPAdapter",
+      "callee": "src/requests/adapters.py::HTTPAdapter.build_response",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::request",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/api.py::request",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::get",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::options",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::head",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::post",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::put",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::patch",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/api.py::delete",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/auth.py::_basic_auth_str",
+      "callee": "src/requests/_internal_utils.py::to_native_string",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPBasicAuth",
+      "callee": "src/requests/auth.py::_basic_auth_str",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPProxyAuth",
+      "callee": "src/requests/auth.py::_basic_auth_str",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPDigestAuth",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPDigestAuth",
+      "callee": "src/requests/auth.py::HTTPDigestAuth.KD",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPDigestAuth",
+      "callee": "src/requests/utils.py::parse_dict_header",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPDigestAuth",
+      "callee": "src/requests/cookies.py::extract_cookies_to_jar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPDigestAuth",
+      "callee": "src/requests/auth.py::HTTPDigestAuth.build_digest_header",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/auth.py::HTTPDigestAuth",
+      "callee": "src/requests/auth.py::HTTPDigestAuth.init_per_thread_state",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/compat.py::__module__",
+      "callee": "src/requests/compat.py::_resolve_char_detection",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::MockRequest",
+      "callee": "src/requests/cookies.py::MockRequest.get_host",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::MockRequest",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::MockRequest",
+      "callee": "src/requests/_internal_utils.py::to_native_string",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/cookies.py::MockRequest",
+      "callee": "src/requests/cookies.py::MockRequest.is_unverifiable",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::MockRequest",
+      "callee": "src/requests/cookies.py::MockRequest.get_origin_req_host",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::MockResponse",
+      "callee": "src/requests/cookies.py::MockResponse.getheaders",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::extract_cookies_to_jar",
+      "callee": "src/requests/cookies.py::MockRequest",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::extract_cookies_to_jar",
+      "callee": "src/requests/cookies.py::MockResponse",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::get_cookie_header",
+      "callee": "src/requests/cookies.py::MockRequest",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::get_cookie_header",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::get_cookie_header",
+      "callee": "src/requests/cookies.py::MockRequest.get_new_headers",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar._find_no_duplicates",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::remove_cookie_by_name",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::morsel_to_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::create_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.set_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.iterkeys",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.itervalues",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.iteritems",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.__iter__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.__contains__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.set",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.copy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.update",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::CookieConflictError",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::RequestsCookieJar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.get_policy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::_copy_cookie_jar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.copy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::_copy_cookie_jar",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.set_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::create_cookie",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.set",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::create_cookie",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.update",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::morsel_to_cookie",
+      "callee": "src/requests/cookies.py::create_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::cookiejar_from_dict",
+      "callee": "src/requests/cookies.py::RequestsCookieJar",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::cookiejar_from_dict",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.set_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::cookiejar_from_dict",
+      "callee": "src/requests/cookies.py::create_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::merge_cookies",
+      "callee": "src/requests/cookies.py::cookiejar_from_dict",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/cookies.py::merge_cookies",
+      "callee": "src/requests/cookies.py::RequestsCookieJar.set_cookie",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/exceptions.py::RequestException",
+      "callee": "src/requests/exceptions.py::JSONDecodeError.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/exceptions.py::JSONDecodeError",
+      "callee": "src/requests/exceptions.py::JSONDecodeError.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/exceptions.py::JSONDecodeError",
+      "callee": "src/requests/exceptions.py::JSONDecodeError.__reduce__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/help.py::info",
+      "callee": "src/requests/help.py::_implementation",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/help.py::main",
+      "callee": "src/requests/help.py::info",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/help.py::__module__",
+      "callee": "src/requests/help.py::main",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/hooks.py::dispatch_hook",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/hooks.py::dispatch_hook",
+      "callee": "tests/test_hooks.py::hook",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::RequestEncodingMixin",
+      "callee": "src/requests/_types.py::has_read",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::RequestEncodingMixin",
+      "callee": "src/requests/utils.py::guess_filename",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Request",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Request",
+      "callee": "src/requests/models.py::RequestHooksMixin.register_hook",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Request",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Request",
+      "callee": "src/requests/models.py::PreparedRequest.prepare",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_method",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_url",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_headers",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_cookies",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_body",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_auth",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_hooks",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.copy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/cookies.py::_copy_cookie_jar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/_internal_utils.py::to_native_string",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/exceptions.py::InvalidURL",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/exceptions.py::MissingSchema",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/_internal_utils.py::unicode_is_ascii",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest._get_idna_encoded_host",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::RequestEncodingMixin._encode_params",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/utils.py::requote_uri",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/utils.py::check_header_validity",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/exceptions.py::InvalidJSONError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/utils.py::super_len",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::RequestEncodingMixin._encode_files",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/_types.py::has_read",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::PreparedRequest.prepare_content_length",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/utils.py::get_auth_from_url",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/auth.py::HTTPBasicAuth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/cookies.py::get_cookie_header",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::PreparedRequest",
+      "callee": "src/requests/models.py::RequestHooksMixin.register_hook",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/models.py::Response.close",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/models.py::Response.iter_content",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/models.py::Response.raise_for_status",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/exceptions.py::ChunkedEncodingError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/exceptions.py::ContentDecodingError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/exceptions.py::ConnectionError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/exceptions.py::StreamConsumedError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/models.py::Response.generate",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/utils.py::stream_decode_response_unicode",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/utils.py::guess_json_utf",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/utils.py::parse_header_links",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/models.py::Response",
+      "callee": "src/requests/exceptions.py::HTTPError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::merge_hooks",
+      "callee": "src/requests/sessions.py::Session.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::merge_hooks",
+      "callee": "src/requests/sessions.py::merge_setting",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/_internal_utils.py::to_native_string",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::Session.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::SessionRedirectMixin.get_redirect_target",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/exceptions.py::TooManyRedirects",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::Session.close",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/utils.py::requote_uri",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::SessionRedirectMixin.rebuild_method",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/cookies.py::extract_cookies_to_jar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/cookies.py::merge_cookies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::SessionRedirectMixin.rebuild_proxies",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::SessionRedirectMixin.rebuild_auth",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/utils.py::rewind_body",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::Session.send",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/sessions.py::SessionRedirectMixin.should_strip_auth",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/utils.py::get_netrc_auth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/utils.py::resolve_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/utils.py::get_auth_from_url",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::SessionRedirectMixin",
+      "callee": "src/requests/auth.py::_basic_auth_str",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/utils.py::default_headers",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.mount",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/adapters.py::HTTPAdapter",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.close",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/cookies.py::merge_cookies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/cookies.py::RequestsCookieJar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/utils.py::get_netrc_auth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::merge_setting",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::merge_hooks",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.prepare_request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.merge_environment_settings",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.send",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.request",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/utils.py::resolve_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::Session.get_adapter",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/hooks.py::dispatch_hook",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/cookies.py::extract_cookies_to_jar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/sessions.py::SessionRedirectMixin.resolve_redirects",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/utils.py::get_environ_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::Session",
+      "callee": "src/requests/exceptions.py::InvalidSchema",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/sessions.py::session",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/status_codes.py::__module__",
+      "callee": "src/requests/structures.py::LookupDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/status_codes.py::_init",
+      "callee": "src/requests/status_codes.py::doc",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/status_codes.py::__module__",
+      "callee": "src/requests/status_codes.py::_init",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/structures.py::CaseInsensitiveDict",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/structures.py::CaseInsensitiveDict",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict.lower_items",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/structures.py::LookupDict",
+      "callee": "src/requests/structures.py::LookupDict.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/structures.py::LookupDict",
+      "callee": "src/requests/structures.py::LookupDict.get",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::proxy_bypass",
+      "callee": "src/requests/utils.py::proxy_bypass_registry",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::get_netrc_auth",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::parse_list_header",
+      "callee": "src/requests/utils.py::unquote_header_value",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::parse_dict_header",
+      "callee": "src/requests/utils.py::unquote_header_value",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::add_dict_to_cookiejar",
+      "callee": "src/requests/cookies.py::cookiejar_from_dict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::get_encoding_from_headers",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::get_encoding_from_headers",
+      "callee": "src/requests/utils.py::_parse_content_type_header",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::get_unicode_from_response",
+      "callee": "src/requests/utils.py::get_encoding_from_headers",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::unquote_unreserved",
+      "callee": "src/requests/exceptions.py::InvalidURL",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::requote_uri",
+      "callee": "src/requests/utils.py::unquote_unreserved",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::address_in_network",
+      "callee": "src/requests/utils.py::dotted_netmask",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::set_environ",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/utils.py::get_proxy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/utils.py::is_ipv4_address",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/utils.py::is_valid_cidr",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/utils.py::address_in_network",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/utils.py::set_environ",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::should_bypass_proxies",
+      "callee": "src/requests/utils.py::proxy_bypass",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::get_environ_proxies",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::select_proxy",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::resolve_proxies",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::resolve_proxies",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::resolve_proxies",
+      "callee": "src/requests/utils.py::get_environ_proxies",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::default_headers",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::default_headers",
+      "callee": "src/requests/utils.py::default_user_agent",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::check_header_validity",
+      "callee": "src/requests/utils.py::_validate_header_part",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "src/requests/utils.py::_validate_header_part",
+      "callee": "src/requests/exceptions.py::InvalidHeader",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "src/requests/utils.py::rewind_body",
+      "callee": "src/requests/exceptions.py::UnrewindableBodyError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/conftest.py::httpbin",
+      "callee": "tests/conftest.py::prepare_url",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/conftest.py::httpbin_secure",
+      "callee": "tests/conftest.py::prepare_url",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_adapters.py::test_request_url_handles_leading_path_separators",
+      "callee": "src/requests/adapters.py::HTTPAdapter",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_adapters.py::test_request_url_handles_leading_path_separators",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_help.py::test_system_ssl",
+      "callee": "src/requests/help.py::info",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_help.py::test_idna_without_version_attribute",
+      "callee": "src/requests/api.py::patch",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_help.py::test_idna_without_version_attribute",
+      "callee": "src/requests/help.py::info",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_help.py::test_idna_with_version_attribute",
+      "callee": "src/requests/api.py::patch",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_help.py::test_idna_with_version_attribute",
+      "callee": "tests/test_help.py::VersionedPackage",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_help.py::test_idna_with_version_attribute",
+      "callee": "src/requests/help.py::info",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_hooks.py::test_hooks",
+      "callee": "src/requests/hooks.py::dispatch_hook",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_hooks.py::test_default_hooks",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::echo_response_handler",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_upload",
+      "callee": "src/requests/api.py::post",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_encoding_error",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_encoding_error",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_encoding_error",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_upload_uses_only_specified_host_header",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_upload_uses_only_specified_host_header",
+      "callee": "src/requests/api.py::post",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_upload_doesnt_skip_host_header",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_chunked_upload_doesnt_skip_host_header",
+      "callee": "src/requests/api.py::post",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_conflicting_content_lengths",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_conflicting_content_lengths",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_conflicting_content_lengths",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_count_reset_on_redirect",
+      "callee": "src/requests/auth.py::HTTPDigestAuth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_count_reset_on_redirect",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_count_reset_on_redirect",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_count_reset_on_redirect",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_only_sent_once",
+      "callee": "src/requests/auth.py::HTTPDigestAuth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_only_sent_once",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_only_sent_once",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_401_only_sent_once",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_only_on_4xx",
+      "callee": "src/requests/auth.py::HTTPDigestAuth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_only_on_4xx",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_only_on_4xx",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_digestauth_only_on_4xx",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_use_proxy_from_environment",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_use_proxy_from_environment",
+      "callee": "tests/utils.py::override_environ",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_use_proxy_from_environment",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_redirect_rfc1808_to_non_ascii_location",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_redirect_rfc1808_to_non_ascii_location",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_redirect_rfc1808_to_non_ascii_location",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_fragment_not_sent_with_request",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_fragment_not_sent_with_request",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_fragment_update_on_redirect",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_fragment_update_on_redirect",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_fragment_update_on_redirect",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_json_decode_compatibility_for_alt_utf_encodings",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_json_decode_compatibility_for_alt_utf_encodings",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_lowlevel.py::test_json_decode_compatibility_for_alt_utf_encodings",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_packages.py::test_can_access_urllib3_attribute",
+      "callee": "tests/test_packages.py::test_can_access_urllib3_attribute",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_packages.py::test_can_access_idna_attribute",
+      "callee": "tests/test_packages.py::test_can_access_idna_attribute",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_packages.py::test_can_access_chardet_attribute",
+      "callee": "tests/test_packages.py::test_can_access_chardet_attribute",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/sessions.py::session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::RedirectSession.send",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/api.py::post",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/api.py::head",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/models.py::Response",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/cookies.py::cookiejar_from_dict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/api.py::put",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/auth.py::_basic_auth_str",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/conftest.py::httpbin_secure",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/utils.py::override_environ",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/auth.py::HTTPDigestAuth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::TestStream.read",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::TestStream",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::BadFileObj.seek",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::CustomMapping",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/api.py::patch",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::ReadProxy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::DummyAuth",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/cookies.py::RequestsCookieJar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::MyCookiePolicy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/exceptions.py::HTTPError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/adapters.py::HTTPAdapter",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::MyString",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::MyBytes",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "src/requests/utils.py::rewind_body",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::BadFileObj",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::AttrProxy",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::TestRequests._patch_adapter_gzipped_redirect",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestRequests",
+      "callee": "tests/test_requests.py::CustomRedirectSession",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestCaseInsensitiveDict",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestCaseInsensitiveDict",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestMorselToCookieExpires",
+      "callee": "src/requests/cookies.py::morsel_to_cookie",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestMorselToCookieMaxAge",
+      "callee": "src/requests/cookies.py::morsel_to_cookie",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestTimeout",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestTimeout",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestTimeout",
+      "callee": "src/requests/api.py::request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::RedirectSession",
+      "callee": "tests/test_requests.py::RedirectSession.build_response",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::RedirectSession",
+      "callee": "src/requests/models.py::Response",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::RedirectSession",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::RedirectSession",
+      "callee": "tests/test_requests.py::RedirectSession._build_raw",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::test_json_encodes_as_bytes",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_requests_are_updated_each_time",
+      "callee": "tests/test_requests.py::RedirectSession",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::test_requests_are_updated_each_time",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_requests_are_updated_each_time",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_requests_are_updated_each_time",
+      "callee": "tests/test_requests.py::RedirectSession.send",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::test_proxy_env_vars_override_default",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_proxy_env_vars_override_default",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_proxy_env_vars_override_default",
+      "callee": "tests/utils.py::override_environ",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_data_argument_accepts_tuples",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_data_argument_accepts_tuples",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::__module__",
+      "callee": "src/requests/hooks.py::default_hooks",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_prepared_copy",
+      "callee": "src/requests/models.py::PreparedRequest",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_retries",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_retries",
+      "callee": "src/requests/adapters.py::HTTPAdapter",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_retries",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_retries",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_pool_connection_closed",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_pool_connection_closed",
+      "callee": "src/requests/adapters.py::HTTPAdapter",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_pool_connection_closed",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_urllib3_pool_connection_closed",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "tests/test_requests.py::TestPreparingURLs.normalize_percent_encode",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "src/requests/api.py::post",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "tests/test_requests.py::RedirectSession.send",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "src/requests/sessions.py::Session",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::TestPreparingURLs",
+      "callee": "tests/testserver/server.py::TLSServer",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_content_length_for_bytes_data",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_content_length_for_bytes_data",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_content_length_for_string_data_counts_bytes",
+      "callee": "src/requests/models.py::Request",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_content_length_for_string_data_counts_bytes",
+      "callee": "tests/conftest.py::httpbin",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_requests.py::test_json_decode_errors_are_serializable_deserializable",
+      "callee": "src/requests/exceptions.py::JSONDecodeError",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_structures.py::TestCaseInsensitiveDict",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_structures.py::TestLookupDict",
+      "callee": "src/requests/structures.py::LookupDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_structures.py::TestLookupDict",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_testserver.py::TestTestServer",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_testserver.py::TestTestServer",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestSuperLen",
+      "callee": "src/requests/utils.py::super_len",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestSuperLen",
+      "callee": "tests/test_utils.py::BoomFile",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_utils.py::TestSuperLen",
+      "callee": "tests/test_utils.py::NoLenBoomFile",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_utils.py::TestSuperLen",
+      "callee": "tests/test_utils.py::LenFile",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_utils.py::TestGetNetrcAuth",
+      "callee": "src/requests/utils.py::get_netrc_auth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestUnquoteHeaderValue",
+      "callee": "src/requests/utils.py::unquote_header_value",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestGetEnvironProxies",
+      "callee": "src/requests/utils.py::get_environ_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestIsIPv4Address",
+      "callee": "src/requests/utils.py::is_ipv4_address",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestIsValidCIDR",
+      "callee": "src/requests/utils.py::is_valid_cidr",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestAddressInNetwork",
+      "callee": "src/requests/utils.py::address_in_network",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestGuessFilename",
+      "callee": "src/requests/utils.py::guess_filename",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestExtractZippedPaths",
+      "callee": "src/requests/utils.py::extract_zipped_paths",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestContentEncodingDetection",
+      "callee": "src/requests/utils.py::get_encodings_from_content",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::TestGuessJSONUTF",
+      "callee": "src/requests/utils.py::guess_json_utf",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_get_auth_from_url",
+      "callee": "src/requests/utils.py::get_auth_from_url",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_requote_uri_with_unquoted_percents",
+      "callee": "src/requests/utils.py::requote_uri",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_unquote_unreserved",
+      "callee": "src/requests/utils.py::unquote_unreserved",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_dotted_netmask",
+      "callee": "src/requests/utils.py::dotted_netmask",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_select_proxies",
+      "callee": "src/requests/utils.py::select_proxy",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_parse_dict_header",
+      "callee": "src/requests/utils.py::parse_dict_header",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test__parse_content_type_header",
+      "callee": "src/requests/utils.py::_parse_content_type_header",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::__module__",
+      "callee": "src/requests/structures.py::CaseInsensitiveDict",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_get_encoding_from_headers",
+      "callee": "src/requests/utils.py::get_encoding_from_headers",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_parse_header_links",
+      "callee": "src/requests/utils.py::parse_header_links",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_prepend_scheme_if_needed",
+      "callee": "src/requests/utils.py::prepend_scheme_if_needed",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_to_native_string",
+      "callee": "src/requests/_internal_utils.py::to_native_string",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_urldefragauth",
+      "callee": "src/requests/utils.py::urldefragauth",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_pass_only_hostname",
+      "callee": "src/requests/api.py::patch",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_pass_only_hostname",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::__module__",
+      "callee": "src/requests/cookies.py::RequestsCookieJar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_add_dict_to_cookiejar",
+      "callee": "src/requests/utils.py::add_dict_to_cookiejar",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_unicode_is_ascii",
+      "callee": "src/requests/_internal_utils.py::unicode_is_ascii",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_no_proxy",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_no_proxy_domain_boundary",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_win_registry",
+      "callee": "tests/test_utils.py::RegHandle",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_win_registry",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_win_registry_bad_values",
+      "callee": "tests/test_utils.py::RegHandle",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_win_registry_bad_values",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_set_environ",
+      "callee": "src/requests/utils.py::set_environ",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_set_environ",
+      "callee": "src/requests/api.py::get",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_set_environ_raises_exception",
+      "callee": "src/requests/utils.py::set_environ",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_win_registry_ProxyOverride_value",
+      "callee": "tests/test_utils.py::RegHandle",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/test_utils.py::test_should_bypass_proxies_win_registry_ProxyOverride_value",
+      "callee": "src/requests/utils.py::should_bypass_proxies",
+      "edge_type": "calls",
+      "same_file": false
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::TLSServer.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::consume_socket_content",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::Server",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::Server.text_response_server",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::TLSServer._create_socket_and_bind",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::Server._handle_requests",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::Server._close_server_sock_ignore_errors",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::Server",
+      "callee": "tests/testserver/server.py::Server._accept_connection",
+      "edge_type": "calls",
+      "same_file": true
+    },
+    {
+      "caller": "tests/testserver/server.py::TLSServer",
+      "callee": "tests/testserver/server.py::TLSServer.__init__",
+      "edge_type": "calls",
+      "same_file": true
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Context Engineering defaults — tune without touching code.
+
+token_budget: 4000
+
+weights:
+  entry: 0.20
+  graph: 0.30
+  relevance: 0.40
+  tier: 0.10
+
+# Within G: file-level and symbol-level are normalized separately then averaged.
+graph_mix:
+  file: 0.5
+  symbol: 0.5
+
+buckets:
+  code: 0.70
+  graph: 0.15
+  history: 0.10
+  reserve: 0.05
+
+# history bucket: sliding window of latest N analysis summaries (NOT priority-trimmed)
+history_window: 1
+
+entry_files:
+  - main.py
+  - app.py
+  - __main__.py
+  - manage.py
+  - wsgi.py
+  - asgi.py
+  - index.js
+  - index.ts
+  - index.tsx
+  - main.ts
+  - main.js
+  - app.ts
+  - Application.java
+  - Main.java
+  - App.java
+  - Bootstrap.java
