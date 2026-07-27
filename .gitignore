@@ -11,5 +11,11 @@ venv/
 .mypy_cache/
 data/workspace/
 data/artifacts/
+data/artifacts_retest/
+data/artifacts_retest2/
+data/exp_artifacts/
+data/exp_workspace/
+eval/reports/
 *.pickle
+*.log
 .DS_Store

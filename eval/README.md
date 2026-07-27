@@ -109,7 +109,7 @@ Any JSON/JSONL with a `findings` list works. Convenient shapes:
 
 Copy numbers into:
 
-[`eval/reports/evaluation_report_template.md`](reports/evaluation_report_template.md)
+[`eval/evaluation_report_template.md`](evaluation_report_template.md)
 
 ## Repo checklist
 

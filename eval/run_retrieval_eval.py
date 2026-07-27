@@ -313,7 +313,7 @@ def write_reports(
 
 ## Notes
 
-- Fill these numbers into `eval/reports/evaluation_report_template.md`.
+- Fill these numbers into `eval/evaluation_report_template.md`.
 - Prefer `vector_backend=qdrant` + real embeddings for resume / interview figures.
 - Do **not** quote hash-embedder numbers as official Hybrid gains.
 """

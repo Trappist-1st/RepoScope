@@ -1,5 +1,9 @@
 # RepoScope
 
+[![CI](https://github.com/Trappist-1st/RepoScope/actions/workflows/ci.yml/badge.svg)](https://github.com/Trappist-1st/RepoScope/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
+
 **Repository Intelligence Engine** for LLMs and agents.
 
 RepoScope turns a GitHub / local repository into structured, evidence-backed understanding:
@@ -13,8 +17,27 @@ Repository
     → MCP / HTTP API
 ```
 
-It is **not** a coding agent, chat product, or auto-PR tool.  
-It is infrastructure that gives models a reliable world-model of a codebase.
+It is **not** a coding agent, chat product, or auto-PR tool.
+It is infrastructure that gives models a reliable world-model of a codebase —
+plug it into Claude Code, Cursor, or your own agent loop as an MCP server or
+HTTP API, instead of re-grepping the repo on every turn.
+
+---
+
+## Why RepoScope (vs. grep, embeddings-only RAG, or a full coding agent)
+
+| | RepoScope | Plain semantic RAG | ctags / grep | Full coding agent |
+|---|---|---|---|---|
+| Answers are evidence-backed (`file:line`) | ✅ | Partial (chunk-level) | ✅ | Depends on the agent |
+| Understands call graphs, not just text similarity | ✅ | ❌ | ❌ | Sometimes, opaquely |
+| Structured output (JSON/graph), not prose | ✅ | ❌ | ❌ | ❌ |
+| Architecture-level findings (patterns, coupling) | ✅ | ❌ | ❌ | Rarely |
+| Makes edits / opens PRs | ❌ (by design) | ❌ | ❌ | ✅ |
+| Multi-turn chat UI | ❌ (by design) | Depends | ❌ | ✅ |
+
+RepoScope's bet: agents don't need another chat window, they need a
+**queryable, cached, evidence-backed model of the repo** they can call as a
+tool. The three engines below are that model.
 
 ---
 
@@ -31,6 +54,10 @@ Supporting stack (still available):
 - Hybrid RAG (dense + BM25 + optional rerank / Qdrant)
 - LangGraph research workflow (`summary` / `interview` / `refactor`) with citation review
 - FastAPI + MCP tool surface for agents
+
+**Language coverage today:** Python, JavaScript, TypeScript, Java (via
+tree-sitter). Go / Rust / C-family are natural next targets — see
+[CONTRIBUTING.md](CONTRIBUTING.md) if you want to add one.
 
 ---
 
@@ -52,16 +79,16 @@ Supporting stack (still available):
 
 ## Quick start
 
-```powershell
+```bash
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate   # .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
 pytest -q
 ```
 
 Optional retrieval models / infra:
 
-```powershell
+```bash
 pip install -e ".[dev,retrieval]"
 docker compose up -d
 # REPOSCOPE_VECTOR_BACKEND=qdrant
@@ -96,15 +123,37 @@ Artifacts per repo: `chunks.json`, `graph.json`, `definitions.json`, `knowledge_
 from app.intelligence.flow_tracer import FlowTracer
 from app.intelligence.flow_format import format_flow_markdown
 
-trace = FlowTracer().trace(kg, "用户登录流程是什么？")
+trace = FlowTracer().trace(kg, "How does login work?")
 print(format_flow_markdown(trace))
 ```
+
+Example output (shape produced by `format_flow_markdown`, run against a
+Spring-style login flow fixture):
+
+```markdown
+## Flow Trace: login flow
+
+**Question:** How does login work?
+**Confidence:** high
+**Score:** 0.92
+
+### Steps
+1. **AuthController.login** (`entrypoint`, high) — `src/main/java/AuthController.java:24-31`
+2. **AuthService.authenticate** (`service`, high) — `src/main/java/AuthService.java:18-40`
+3. **UserRepository.findByUsername** (`repository`, high) — `src/main/java/UserRepository.java:12-15`
+
+### Alternatives
+1. `AuthController.login → SessionManager.create` (score=0.41, medium)
+```
+
+Every step carries a `file:line` and a role (`entrypoint` / `service` /
+`repository` / …) plus a confidence — nothing in the output is unattributed.
 
 HTTP:
 
 ```http
 POST /trace
-{ "repo_source": "<git-url-or-path>", "question": "用户登录流程是什么？" }
+{ "repo_source": "<git-url-or-path>", "question": "How does login work?" }
 ```
 
 ### Architecture Intelligence
@@ -130,7 +179,7 @@ Modules are path clusters with honest typing (`feature` / `layer` / `technical` 
 
 ## MCP tools
 
-```powershell
+```bash
 python -m app.mcp.server
 ```
 
@@ -146,7 +195,7 @@ Setup: [`docs/mcp_setup.md`](docs/mcp_setup.md)
 
 Also:
 
-```powershell
+```bash
 uvicorn app.api.main:app --reload
 # GET  /health
 # POST /analyze/stream
@@ -164,8 +213,8 @@ LangGraph path for report-style analysis:
 
 `route → repo_parse → planner → retrieve → analyze → review → finalize`
 
-```powershell
-copy .env.example .env
+```bash
+cp .env.example .env
 # REPOSCOPE_LLM_API_KEY=...
 ```
 
@@ -191,7 +240,7 @@ Prefer **FlowTracer / ArchitectureAnalyzer** when you need structured intelligen
 - Config: `config/retrieval.yaml`
 - Eval harness: [`eval/README.md`](eval/README.md)
 
-```powershell
+```bash
 python -m eval.run_retrieval_eval --compare-modes --hash-embedder
 ```
 
@@ -199,11 +248,11 @@ python -m eval.run_retrieval_eval --compare-modes --hash-embedder
 
 ## Tests
 
-```powershell
+```bash
 pytest -q
 ```
 
-Includes fixtures for Spring-like and FastAPI-like login flows under `tests/fixtures/`.
+104 tests, fixture-driven — includes fixtures for Spring-like and FastAPI-like login flows under `tests/fixtures/`.
 
 ---
 
@@ -219,3 +268,15 @@ KnowledgeGraph  FlowTracer  ArchitectureAnalyzer
 ```
 
 That is the intended core. Extend only when a real agent/product need appears — not by drifting into chat or auto-coding.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — language grammars and flow-tracing
+fixtures for real-world frameworks are the highest-leverage contributions
+right now.
+
+## License
+
+[MIT](LICENSE)

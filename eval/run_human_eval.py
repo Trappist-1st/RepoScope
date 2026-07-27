@@ -296,7 +296,7 @@ def write_summary_md(stats: dict[str, Any], labels_path: Path) -> Path:
 - **Conclusion grounded**: a careful reader of the cited spans would accept the
   claim; no unsupported leaps.
 
-Copy these numbers into `eval/reports/evaluation_report_template.md`.
+Copy these numbers into `eval/evaluation_report_template.md`.
 """
     REPORT_MD.write_text(md, encoding="utf-8")
     return REPORT_MD
