@@ -1,12 +1,21 @@
 # RepoScope MCP Server setup
 
-RepoScope exposes three MCP tools over **stdio**:
+RepoScope exposes eight MCP tools over **stdio**:
 
 | Tool | Purpose |
 |---|---|
+| `get_initial_context` | **Start here.** README + profile + core modules + core file source (the "launchpad") |
 | `get_repo_summary` | Architecture summary with citations |
+| `search_code` | Hybrid BM25 + vector search over indexed code chunks |
+| `view_source` | Read a symbol, a line range, or a whole file (+ outline) |
 | `query_dependencies` | Callers / callees / imports for a symbol |
+| `trace_flow` | Evidence-backed call path for a business flow |
+| `analyze_architecture` | Modules / patterns / coupling / profile |
 | `suggest_refactor` | Refactor suggestions for a file |
+
+Suggested exploration order for an unfamiliar repo: `get_initial_context` →
+`search_code` / `analyze_architecture` → `view_source` / `query_dependencies`
+to drill into specifics.
 
 ## Run locally
 
@@ -67,6 +76,46 @@ If `REPOSCOPE_DATABASE_URL` is **not** set, RepoScope uses an **in-memory** `age
 Similarly, without Redis, live run state is in-memory and non-persistent.
 
 ## Example tool calls
+
+**Initial context (call this first)**
+
+```json
+{
+  "repo_url": "D:/B/1_VSCode/RepoScope/tests/fixtures/sample_repo",
+  "top_k_modules": 8,
+  "top_k_core_files": 5
+}
+```
+
+No README in the repo, or no readable core files? Both surface as explicit
+`meta.warnings` / `warnings` entries — never a silent empty section.
+
+**Search**
+
+```json
+{
+  "repo_url": ".../sample_repo",
+  "query": "greet helper",
+  "top_k": 10
+}
+```
+
+Zero ranked hits triggers a fallback to a diversity sample of indexed chunks
+(`notes` explains this); results always carry a `file:line` citation.
+
+**View source**
+
+```json
+{
+  "repo_url": ".../sample_repo",
+  "file_path": "py_pkg/a.py",
+  "symbol_name": "greet"
+}
+```
+
+Precedence is `symbol_name` > (`start_line`, `end_line`) > whole file. Omit
+all three to get the file (capped ~400 lines) plus an `outline` of its
+top-level definitions, so you can target a specific symbol next.
 
 **Summary**
 

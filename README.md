@@ -185,7 +185,10 @@ python -m app.mcp.server
 
 | Tool | Purpose |
 |---|---|
+| `get_initial_context` | Repository "launchpad": README + profile + core modules + core file source |
 | `get_repo_summary` | Citation-backed summary (LangGraph workflow) |
+| `search_code` | Hybrid BM25 + vector search over indexed code chunks |
+| `view_source` | Read a symbol, a line range, or a whole file (+ outline) |
 | `query_dependencies` | Callers / callees / imports |
 | `suggest_refactor` | Refactor suggestions with evidence |
 | `trace_flow` | Flow Trace (call path understanding) |
@@ -252,7 +255,7 @@ python -m eval.run_retrieval_eval --compare-modes --hash-embedder
 pytest -q
 ```
 
-104 tests, fixture-driven — includes fixtures for Spring-like and FastAPI-like login flows under `tests/fixtures/`.
+112 tests, fixture-driven — includes fixtures for Spring-like and FastAPI-like login flows under `tests/fixtures/`.
 
 ---
 

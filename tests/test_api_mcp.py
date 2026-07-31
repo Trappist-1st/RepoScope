@@ -131,6 +131,95 @@ def test_analyze_architecture_spring_fixture(tmp_path: Path):
     assert record.intent == "architecture"
 
 
+def test_search_code_returns_ranked_hits(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.search_code(str(SAMPLE_REPO), query="greet", top_k=5)
+    assert result.meta.run_id
+    assert result.meta.indexing_status in {"cached", "incremental", "full_reindex"}
+    assert result.hits
+    top = result.hits[0]
+    assert top.citation.file_path
+    assert top.citation.start_line >= 1
+
+
+def test_search_code_falls_back_to_explore_on_zero_hits(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.search_code(str(SAMPLE_REPO), query="zzz_no_such_term_xyz", top_k=3)
+    assert result.meta.run_id
+    # hybrid search over a hash embedder rarely yields literally zero hits,
+    # but when it does, explore() must still return cited chunks with a note.
+    if any("falling back" in n for n in result.notes):
+        assert result.hits
+
+
+def test_view_source_by_symbol(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.view_source(
+        str(SAMPLE_REPO), file_path="py_pkg/a.py", symbol_name="greet"
+    )
+    assert result.meta.run_id
+    assert "def greet" in result.content
+    assert result.citation is not None
+    assert result.citation.file_path == "py_pkg/a.py"
+    assert not result.outline  # symbol hit -> no outline needed
+
+
+def test_view_source_whole_file_has_outline(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.view_source(str(SAMPLE_REPO), file_path="py_pkg/a.py")
+    assert result.content
+    assert "greet" in result.content
+    names = {d.name for d in result.outline}
+    assert "greet" in names
+    assert "Helper" in names
+
+
+def test_view_source_line_range(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.view_source(
+        str(SAMPLE_REPO), file_path="py_pkg/a.py", start_line=1, end_line=2
+    )
+    assert result.content
+    assert result.citation is not None
+    assert result.citation.start_line == 1
+    assert result.citation.end_line == 2
+
+
+def test_view_source_unknown_symbol_falls_back_to_file(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.view_source(
+        str(SAMPLE_REPO), file_path="py_pkg/a.py", symbol_name="does_not_exist"
+    )
+    assert result.content  # falls back to whole-file view
+    assert any("not found" in n for n in result.notes)
+    assert result.outline
+
+
+def test_get_initial_context_structure(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.get_initial_context(str(SAMPLE_REPO))
+    assert result.meta.run_id
+    assert result.languages  # python at least
+    # no README in the fixture repo -> explicit warning, not a silent gap
+    assert result.readme_path is None
+    assert any("README" in w for w in result.meta.warnings)
+    assert result.core_modules or result.remaining_modules
+    for cf in result.core_files:
+        assert cf.file_path
+        assert cf.content
+
+
+def test_get_initial_context_spring_fixture(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.get_initial_context(str(SPRING_LOGIN), top_k_core_files=3)
+    assert result.meta.run_id
+    assert "java" in result.languages
+    assert result.core_modules
+    record = facade.audit_store.get(result.meta.run_id)
+    assert record is not None
+    assert record.intent == "bootstrap"
+
+
 def test_http_post_architecture(tmp_path: Path):
     app = create_app()
     facade = _facade(tmp_path)

@@ -128,6 +128,82 @@ def analyze_architecture(
     return result.model_dump()
 
 
+@mcp.tool()
+def search_code(
+    repo_url: str,
+    query: str,
+    top_k: int = 10,
+    graph_expand: bool = False,
+    force_reindex: bool = False,
+) -> dict:
+    """Hybrid (BM25 + vector) keyword/semantic search over indexed code chunks.
+
+    Use this to find *candidate* files/symbols for a free-text query before
+    drilling in with view_source or query_dependencies. If nothing ranks well,
+    falls back to a diversity sample of indexed chunks (still cited).
+    """
+    result = get_facade().search_code(
+        repo_url=repo_url,
+        query=query,
+        top_k=top_k,
+        graph_expand=graph_expand,
+        force_reindex=force_reindex,
+    )
+    return result.model_dump()
+
+
+@mcp.tool()
+def view_source(
+    repo_url: str,
+    file_path: str,
+    symbol_name: str | None = None,
+    start_line: int | None = None,
+    end_line: int | None = None,
+    force_reindex: bool = False,
+) -> dict:
+    """Read source code: by symbol, by line range, or the whole file.
+
+    Precedence: symbol_name > (start_line, end_line) > whole file. When no
+    symbol/line range is given, returns the file capped at ~400 lines plus an
+    `outline` of top-level definitions (name/kind/line range) so you can pick
+    a symbol_name for a follow-up call instead of reading the whole file.
+    """
+    result = get_facade().view_source(
+        repo_url=repo_url,
+        file_path=file_path,
+        symbol_name=symbol_name,
+        start_line=start_line,
+        end_line=end_line,
+        force_reindex=force_reindex,
+    )
+    return result.model_dump()
+
+
+@mcp.tool()
+def get_initial_context(
+    repo_url: str,
+    top_k_modules: int = 8,
+    top_k_core_files: int = 5,
+    force_reindex: bool = False,
+) -> dict:
+    """Repository "launchpad": README + profile + core modules + core file source.
+
+    Call this FIRST when starting to explore an unfamiliar repository. Returns:
+    README excerpt, detected languages/frameworks/build systems/infra,
+    entrypoints, the top-coupling modules with a source excerpt each
+    (`core_files`), and a path-only list of the remaining modules
+    (`remaining_modules`) to drill into with search_code / view_source /
+    query_dependencies. No LLM calls -- purely evidence-backed heuristics.
+    """
+    result = get_facade().get_initial_context(
+        repo_url=repo_url,
+        top_k_modules=top_k_modules,
+        top_k_core_files=top_k_core_files,
+        force_reindex=force_reindex,
+    )
+    return result.model_dump()
+
+
 def main() -> None:
     mcp.run(transport="stdio")
 

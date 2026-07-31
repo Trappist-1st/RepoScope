@@ -17,19 +17,26 @@ from app.db import InMemoryFilesRepository, InMemoryReposRepository
 from app.graph.query import callees_of, callers_of, file_imports, files_imported_by
 from app.ingestion import IngestionPipeline
 from app.mcp.schemas import (
+    ArchitectureResult,
+    BootstrapCoreFileOut,
+    BootstrapModuleOut,
     CitationOut,
+    DefinitionOut,
     DependenciesResult,
     DependencyEdgeOut,
     Evidence,
     FindingOut,
+    InitialContextResult,
     KeyFlow,
     MCPMeta,
     ModuleSummary,
     RefactorResult,
     RefactorSuggestion,
     RepoSummaryResult,
+    SearchCodeResult,
+    SearchHitOut,
     TraceFlowResult,
-    ArchitectureResult,
+    ViewSourceResult,
 )
 from app.models.schemas import Chunk, DependencyGraph, IngestResult
 from app.retrieval import IndexRequest, RetrievalService
@@ -42,6 +49,8 @@ from app.workflow.analyzers import Analyzer
 from app.workflow.schemas import Finding
 
 SNIPPET_MAX = 400
+VIEW_LINE_LIMIT = 400
+VIEW_CHAR_LIMIT = 20_000
 IndexingStatus = Literal["cached", "incremental", "full_reindex"]
 
 
@@ -558,6 +567,289 @@ class RepoScopeFacade:
             },
         )
         return out
+
+    def search_code(
+        self,
+        repo_url: str,
+        query: str,
+        top_k: int = 10,
+        graph_expand: bool = False,
+        force_reindex: bool = False,
+    ) -> SearchCodeResult:
+        """Hybrid (BM25 + vector) code/doc search -- Search-class exploration tool."""
+        t0 = time.perf_counter()
+        top_k = max(1, min(top_k, 50))
+        ingest, indexing_status = self.ensure_indexed(repo_url, force_reindex=force_reindex)
+        warnings = self._audit_warnings()
+        notes: list[str] = []
+
+        from app.retrieval.schemas import RetrieveRequest
+
+        resp = self.retrieval.retrieve(
+            RetrieveRequest(
+                repo_id=ingest.repo_id,
+                query=query,
+                final_top_n=top_k,
+                graph_expand=graph_expand,
+            )
+        )
+        hits = list(resp.hits)
+        if not hits:
+            notes.append(
+                "No ranked hits for this query; falling back to a diversity "
+                "sample of indexed chunks so results still have citations."
+            )
+            hits = self.retrieval.explore(ingest.repo_id, limit=top_k)
+        elif graph_expand and resp.expanded_hits:
+            notes.append(
+                f"{len(resp.expanded_hits)} additional one-hop graph-expanded hits "
+                "available; call query_dependencies for the full edge set."
+            )
+
+        hits_out = [
+            SearchHitOut(
+                citation=CitationOut.from_parts(
+                    h.citation.file_path, h.citation.start_line, h.citation.end_line
+                ),
+                symbol_name=h.symbol_name,
+                kind=h.kind,
+                language=h.language,
+                score=h.score,
+                source=h.source,
+                snippet=h.content[:SNIPPET_MAX],
+            )
+            for h in hits[:top_k]
+        ]
+
+        took_ms = int((time.perf_counter() - t0) * 1000)
+        run_id = new_run_id()
+        meta = MCPMeta(
+            repo_id=ingest.repo_id,
+            repo_url=repo_url,
+            commit_hash=ingest.commit_hash or None,
+            run_id=run_id,
+            took_ms=took_ms,
+            indexing_status=indexing_status,
+            warnings=warnings,
+            audit_backend=self.audit_store.backend,
+        )
+        result = SearchCodeResult(meta=meta, query=query, hits=hits_out, notes=notes)
+        self._persist_run(
+            run_id=run_id,
+            repo_id=ingest.repo_id,
+            question=f"search:{query}",
+            intent="search",
+            result=result.model_dump(),
+            review_passed=True,
+            low_confidence=not hits_out,
+            status="ok" if hits_out else "partial",
+            warnings=warnings,
+            node_timings={"total_ms": float(took_ms)},
+        )
+        return result
+
+    def view_source(
+        self,
+        repo_url: str,
+        file_path: str,
+        symbol_name: str | None = None,
+        start_line: int | None = None,
+        end_line: int | None = None,
+        force_reindex: bool = False,
+    ) -> ViewSourceResult:
+        """Granular Code View -- read a symbol, a line range, or a whole file (+outline)."""
+        t0 = time.perf_counter()
+        ingest, indexing_status = self.ensure_indexed(repo_url, force_reindex=force_reindex)
+        warnings = self._audit_warnings()
+        notes: list[str] = []
+        fp = file_path.replace("\\", "/")
+
+        content = ""
+        citation: CitationOut | None = None
+        truncated = False
+        outline: list[DefinitionOut] = []
+
+        if symbol_name:
+            chunk_index = self._chunks_by_symbol(ingest.repo_id)
+            chunk = chunk_index.get(f"{fp}::{symbol_name}") or chunk_index.get(symbol_name)
+            if chunk is None:
+                short = symbol_name.split(".")[-1]
+                chunk = chunk_index.get(f"{fp}::{short}") or chunk_index.get(short)
+            if chunk is not None:
+                content = chunk.content
+                citation = CitationOut.from_parts(chunk.file_path, chunk.start_line, chunk.end_line)
+            else:
+                notes.append(
+                    f"Symbol '{symbol_name}' not found via indexed chunks; "
+                    "falling back to file-level view."
+                )
+        elif start_line is not None:
+            end = end_line if end_line is not None else start_line
+            content, citation, truncated = self._read_file_range(ingest.local_path, fp, start_line, end)
+            if not content:
+                notes.append(f"Could not read lines {start_line}-{end} of '{fp}'.")
+
+        if not content:
+            content, whole_truncated = self._read_whole_file(ingest.local_path, fp)
+            truncated = truncated or whole_truncated
+            if not content:
+                notes.append(f"Could not read '{fp}' from the checked-out workspace.")
+            else:
+                citation = citation or CitationOut.from_parts(fp, 1, content.count("\n") + 1)
+            outline = self._file_outline(ingest.repo_id, fp)
+
+        took_ms = int((time.perf_counter() - t0) * 1000)
+        run_id = new_run_id()
+        meta = MCPMeta(
+            repo_id=ingest.repo_id,
+            repo_url=repo_url,
+            commit_hash=ingest.commit_hash or None,
+            run_id=run_id,
+            took_ms=took_ms,
+            indexing_status=indexing_status,
+            warnings=warnings,
+            audit_backend=self.audit_store.backend,
+        )
+        result = ViewSourceResult(
+            meta=meta,
+            file_path=fp,
+            symbol_name=symbol_name,
+            citation=citation,
+            content=content,
+            outline=outline,
+            truncated=truncated,
+            notes=notes,
+        )
+        self._persist_run(
+            run_id=run_id,
+            repo_id=ingest.repo_id,
+            question=f"view_source:{fp}::{symbol_name or ''}",
+            intent="view_source",
+            result=result.model_dump(),
+            review_passed=True,
+            low_confidence=not content,
+            status="ok" if content else "partial",
+            warnings=warnings,
+            node_timings={"total_ms": float(took_ms)},
+        )
+        return result
+
+    def get_initial_context(
+        self,
+        repo_url: str,
+        top_k_modules: int = 8,
+        top_k_core_files: int = 5,
+        force_reindex: bool = False,
+    ) -> InitialContextResult:
+        """Four-part repository launchpad: README + profile + core modules + core file source."""
+        t0 = time.perf_counter()
+        ingest, indexing_status = self.ensure_indexed(repo_url, force_reindex=force_reindex)
+        warnings = self._audit_warnings()
+        if indexing_status == "full_reindex":
+            warnings.append("indexing_status=full_reindex (potentially slow for large repos)")
+
+        kg = self._load_or_build_knowledge_graph(ingest.repo_id)
+
+        from app.context_engine.bootstrap import assemble_bootstrap_context
+        from app.intelligence.architecture import ArchitectureAnalyzer
+
+        arch = ArchitectureAnalyzer().analyze(kg, workspace_root=ingest.local_path)
+        bootstrap = assemble_bootstrap_context(
+            kg,
+            arch,
+            workspace_root=ingest.local_path,
+            top_k_modules=max(1, min(top_k_modules, 30)),
+            top_k_core_files=max(0, min(top_k_core_files, 15)),
+        )
+
+        took_ms = int((time.perf_counter() - t0) * 1000)
+        run_id = new_run_id()
+        meta = MCPMeta(
+            repo_id=ingest.repo_id,
+            repo_url=repo_url,
+            commit_hash=ingest.commit_hash or kg.commit_hash,
+            run_id=run_id,
+            took_ms=took_ms,
+            indexing_status=indexing_status,
+            warnings=warnings + list(bootstrap.warnings),
+            audit_backend=self.audit_store.backend,
+        )
+        result = InitialContextResult(
+            meta=meta,
+            readme_path=bootstrap.readme_path,
+            readme_excerpt=bootstrap.readme_excerpt,
+            readme_truncated=bootstrap.readme_truncated,
+            languages=bootstrap.languages,
+            frameworks=bootstrap.frameworks,
+            build_systems=bootstrap.build_systems,
+            infra=bootstrap.infra,
+            entrypoints=bootstrap.entrypoints,
+            core_modules=[BootstrapModuleOut(**vars(m)) for m in bootstrap.core_modules],
+            core_files=[BootstrapCoreFileOut(**vars(f)) for f in bootstrap.core_files],
+            remaining_modules=[BootstrapModuleOut(**vars(m)) for m in bootstrap.remaining_modules],
+        )
+        self._persist_run(
+            run_id=run_id,
+            repo_id=ingest.repo_id,
+            question="get_initial_context",
+            intent="bootstrap",
+            result=result.model_dump(),
+            review_passed=True,
+            low_confidence=False,
+            status="ok",
+            warnings=meta.warnings,
+            node_timings={"total_ms": float(took_ms)},
+        )
+        return result
+
+    def _read_file_range(
+        self, local_path: str, file_path: str, start: int, end: int
+    ) -> tuple[str, CitationOut | None, bool]:
+        abs_path = Path(local_path) / file_path
+        try:
+            lines = abs_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            return "", None, False
+        n = len(lines)
+        if n == 0:
+            return "", None, False
+        s = max(1, min(start, n))
+        e = max(s, min(end, n))
+        truncated = (e - s + 1) > VIEW_LINE_LIMIT
+        if truncated:
+            e = s + VIEW_LINE_LIMIT - 1
+        snippet = "\n".join(lines[s - 1 : e])
+        return snippet, CitationOut.from_parts(file_path, s, e), truncated
+
+    def _read_whole_file(self, local_path: str, file_path: str) -> tuple[str, bool]:
+        abs_path = Path(local_path) / file_path
+        try:
+            raw = abs_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return "", False
+        lines = raw.splitlines()
+        truncated = len(lines) > VIEW_LINE_LIMIT or len(raw) > VIEW_CHAR_LIMIT
+        content = "\n".join(lines[:VIEW_LINE_LIMIT])[:VIEW_CHAR_LIMIT]
+        return content, truncated
+
+    def _file_outline(self, repo_id: str, file_path: str) -> list[DefinitionOut]:
+        defs_path = self.artifact_dir / repo_id / "definitions.json"
+        if not defs_path.exists():
+            return []
+        import json
+
+        raw = json.loads(defs_path.read_text(encoding="utf-8"))
+        entries = raw.get(file_path) or []
+        return [
+            DefinitionOut(
+                name=d.get("name", ""),
+                kind=d.get("kind", ""),
+                start_line=d.get("start_line", 0),
+                end_line=d.get("end_line", 0),
+                parent_name=d.get("parent_name"),
+            )
+            for d in entries
+        ]
 
     def _load_or_build_knowledge_graph(self, repo_id: str):
         from app.intelligence import build_knowledge_graph, try_load_knowledge_graph

@@ -126,3 +126,85 @@ class ArchitectureResult(BaseModel):
     primary_pattern: str = "unknown"
     finding_count: int = 0
     low_confidence: bool = False
+
+
+class SearchHitOut(BaseModel):
+    citation: CitationOut
+    symbol_name: str | None = None
+    kind: str | None = None
+    language: str | None = None
+    score: float = 0.0
+    source: str = "hybrid"
+    snippet: str = ""
+
+
+class SearchCodeResult(BaseModel):
+    """MCP/API payload for keyword/semantic code search (hybrid BM25 + vector)."""
+
+    meta: MCPMeta
+    query: str = ""
+    hits: list[SearchHitOut] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class DefinitionOut(BaseModel):
+    """One entry in a file outline (used when view_source has no symbol/line target)."""
+
+    name: str
+    kind: str
+    start_line: int
+    end_line: int
+    parent_name: str | None = None
+
+
+class ViewSourceResult(BaseModel):
+    """MCP/API payload for Granular Code View: read a file, symbol, or line range."""
+
+    meta: MCPMeta
+    file_path: str
+    symbol_name: str | None = None
+    citation: CitationOut | None = None
+    content: str = ""
+    outline: list[DefinitionOut] = Field(default_factory=list)
+    truncated: bool = False
+    notes: list[str] = Field(default_factory=list)
+
+
+class BootstrapModuleOut(BaseModel):
+    id: str
+    name: str
+    module_type: str
+    responsibility: str
+    boundary_confidence: str
+    file_count: int
+    path_roots: list[str] = Field(default_factory=list)
+    coupling: float = 0.0
+
+
+class BootstrapCoreFileOut(BaseModel):
+    file_path: str
+    content: str
+    truncated: bool
+    reason: str
+
+
+class InitialContextResult(BaseModel):
+    """MCP/API payload for the four-part repository launchpad context.
+
+    README + repository profile + top-coupling module map + a handful of core
+    source excerpts -- meant to be the first thing an agent reads before
+    drilling in with search_code / view_source / query_dependencies.
+    """
+
+    meta: MCPMeta
+    readme_path: str | None = None
+    readme_excerpt: str = ""
+    readme_truncated: bool = False
+    languages: dict[str, int] = Field(default_factory=dict)
+    frameworks: list[str] = Field(default_factory=list)
+    build_systems: list[str] = Field(default_factory=list)
+    infra: list[str] = Field(default_factory=list)
+    entrypoints: list[str] = Field(default_factory=list)
+    core_modules: list[BootstrapModuleOut] = Field(default_factory=list)
+    core_files: list[BootstrapCoreFileOut] = Field(default_factory=list)
+    remaining_modules: list[BootstrapModuleOut] = Field(default_factory=list)
