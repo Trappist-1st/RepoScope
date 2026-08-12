@@ -17,3 +17,13 @@ def file_imports(graph: DependencyGraph, file_path: str) -> list[str]:
 
 def files_imported_by(graph: DependencyGraph, file_path: str) -> list[str]:
     return sorted({e.source for e in graph.file_edges if e.target == file_path})
+
+
+def parents_of(graph: DependencyGraph, symbol_ref: str) -> list[str]:
+    """Direct superclass / interface symbol_refs for a type."""
+    return sorted({e.parent for e in graph.inherit_edges if e.child == symbol_ref})
+
+
+def children_of_type(graph: DependencyGraph, symbol_ref: str) -> list[str]:
+    """Types that extend / implement the given type."""
+    return sorted({e.child for e in graph.inherit_edges if e.parent == symbol_ref})

@@ -3,11 +3,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from app.graph.resolver import SymbolResolver, symbol_ref
 from app.models.schemas import (
     CallEdge,
     Definition,
     DependencyGraph,
     FileDependencyEdge,
+    InheritEdge,
     SymbolKind,
 )
 from app.parsing.languages import detect_language, get_parser
@@ -36,20 +38,14 @@ _RECEIVER_CALL = re.compile(
 )
 
 
-def _symbol_ref(file_path: str, definition: Definition) -> str:
-    if definition.parent_name:
-        return f"{file_path}::{definition.parent_name}.{definition.name}"
-    return f"{file_path}::{definition.name}"
-
-
-def _top_level_symbols(definitions: list[Definition]) -> dict[str, str]:
-    """name -> symbol_ref suffix without file (just Name or Class.method for methods we skip)."""
+def _top_level_symbols(definitions: list[Definition]) -> dict[str, Definition]:
+    """name -> definition for non-method top-level symbols."""
     out: dict[str, Definition] = {}
     for d in definitions:
         if d.kind == SymbolKind.METHOD:
             continue
         out[d.name] = d
-    return {name: d for name, d in out.items()}
+    return out
 
 
 class DependencyGraphBuilder:
@@ -59,20 +55,35 @@ class DependencyGraphBuilder:
         commit_hash: str | None,
         files: dict[str, str],
         definitions_by_file: dict[str, list[Definition]],
+        *,
+        origin_paths: set[str] | None = None,
     ) -> DependencyGraph:
+        """
+        Build dependency graph.
+
+        When ``origin_paths`` is set, only emit edges that *originate* from those
+        files (imports/calls/inherit from those files). Resolution still uses the
+        full ``files`` / ``definitions_by_file`` maps — for incremental merge.
+        """
         path_index = self._build_path_index(files.keys())
         file_edges: list[FileDependencyEdge] = []
         call_edges: list[CallEdge] = []
+        origins = {p.replace("\\", "/") for p in origin_paths} if origin_paths else None
 
-        # Map: imported module alias/name -> target file (best-effort)
+        # Map: local binding name -> target file (best-effort)
         import_map_by_file: dict[str, dict[str, str]] = {}
+        # Map: local binding -> original symbol name (handles `import x as y`)
+        import_symbol_by_file: dict[str, dict[str, str]] = {}
 
         for file_path, content in files.items():
             language = detect_language(file_path)
-            targets, name_to_file = self._resolve_imports(
+            targets, name_to_file, local_to_symbol = self._resolve_imports(
                 file_path, content, language, path_index, files
             )
             import_map_by_file[file_path] = name_to_file
+            import_symbol_by_file[file_path] = local_to_symbol
+            if origins is not None and file_path not in origins:
+                continue
             for target in sorted(targets):
                 if target != file_path and target in files:
                     file_edges.append(
@@ -87,7 +98,17 @@ class DependencyGraphBuilder:
                     continue
                 global_symbols.setdefault(d.name, []).append((fpath, d))
 
+        resolver = SymbolResolver(
+            files=files,
+            definitions_by_file=definitions_by_file,
+            path_index=path_index,
+            import_map_by_file=import_map_by_file,
+        )
+        inherit_edges: list[InheritEdge] = []
+
         for file_path, content in files.items():
+            if origins is not None and file_path not in origins:
+                continue
             defs = definitions_by_file.get(file_path, [])
             local = _top_level_symbols(defs)
             # also index methods by short name for same-file calls
@@ -99,12 +120,35 @@ class DependencyGraphBuilder:
                 self._java_field_types(content) if language == "java" else {}
             )
             import_map = import_map_by_file.get(file_path, {})
+            import_symbols = import_symbol_by_file.get(file_path, {})
+
+            # --- inherit / implements resolution (extract → resolve) ---
+            for d in defs:
+                if d.kind != SymbolKind.CLASS or not d.bases:
+                    continue
+                child_ref = symbol_ref(file_path, d)
+                for base in d.bases:
+                    parent_ref = resolver.resolve_type(
+                        base.name,
+                        from_file=file_path,
+                        prefer_impl=False,
+                    )
+                    if parent_ref is None:
+                        continue
+                    inherit_edges.append(
+                        InheritEdge(
+                            child=child_ref,
+                            parent=parent_ref,
+                            relation=base.relation,
+                            same_file=parent_ref.startswith(f"{file_path}::"),
+                        )
+                    )
 
             callers = self._iter_call_sites(file_path, content, defs)
             for caller_ref, callee_name, receiver in callers:
                 # same-file resolution
                 if callee_name in local:
-                    callee_ref = _symbol_ref(file_path, local[callee_name])
+                    callee_ref = symbol_ref(file_path, local[callee_name])
                     call_edges.append(
                         CallEdge(
                             caller=caller_ref,
@@ -114,7 +158,7 @@ class DependencyGraphBuilder:
                     )
                     continue
                 if callee_name in local_methods and not receiver:
-                    callee_ref = _symbol_ref(file_path, local_methods[callee_name])
+                    callee_ref = symbol_ref(file_path, local_methods[callee_name])
                     call_edges.append(
                         CallEdge(
                             caller=caller_ref,
@@ -126,14 +170,12 @@ class DependencyGraphBuilder:
 
                 # Java/Spring: field.method() / Type.staticMethod()
                 if receiver:
-                    resolved = self._resolve_receiver_call(
-                        receiver=receiver,
-                        callee_name=callee_name,
-                        field_types=field_types,
-                        import_map=import_map,
-                        path_index=path_index,
-                        definitions_by_file=definitions_by_file,
-                        caller_file=file_path,
+                    type_name = field_types.get(receiver, receiver)
+                    resolved = resolver.resolve_method_on_type(
+                        type_name=type_name,
+                        method_name=callee_name,
+                        from_file=file_path,
+                        prefer_impl=True,
                     )
                     if resolved is not None:
                         call_edges.append(
@@ -145,15 +187,17 @@ class DependencyGraphBuilder:
                         )
                         continue
 
-                # cross-file via import map (imported symbol called directly)
+                # cross-file via import map (imported symbol called directly,
+                # including `from x import login as auth_login` → resolve "login")
                 imported_file = import_map.get(callee_name)
                 if imported_file and imported_file in definitions_by_file:
+                    resolve_name = import_symbols.get(callee_name, callee_name)
                     for d in definitions_by_file[imported_file]:
-                        if d.name == callee_name and d.kind != SymbolKind.METHOD:
+                        if d.name == resolve_name and d.kind != SymbolKind.METHOD:
                             call_edges.append(
                                 CallEdge(
                                     caller=caller_ref,
-                                    callee=_symbol_ref(imported_file, d),
+                                    callee=symbol_ref(imported_file, d),
                                     same_file=False,
                                 )
                             )
@@ -167,7 +211,7 @@ class DependencyGraphBuilder:
                     call_edges.append(
                         CallEdge(
                             caller=caller_ref,
-                            callee=_symbol_ref(other_file, d),
+                            callee=symbol_ref(other_file, d),
                             same_file=False,
                         )
                     )
@@ -175,11 +219,13 @@ class DependencyGraphBuilder:
         # dedupe
         file_edges = self._dedupe_file_edges(file_edges)
         call_edges = self._dedupe_call_edges(call_edges)
+        inherit_edges = self._dedupe_inherit_edges(inherit_edges)
         return DependencyGraph(
             repo_id=repo_id,
             commit_hash=commit_hash,
             file_edges=file_edges,
             call_edges=call_edges,
+            inherit_edges=inherit_edges,
         )
 
     def merge_update(
@@ -188,27 +234,54 @@ class DependencyGraphBuilder:
         changed_paths: list[str],
         deleted_paths: list[str],
         partial_graph: DependencyGraph,
+        *,
+        rebuild_origins: set[str] | None = None,
     ) -> DependencyGraph:
-        """Reserved for strategy B; v1 prefers full rebuild via build()."""
-        drop = set(changed_paths) | set(deleted_paths)
+        """Merge a partial rebuild into an existing graph.
+
+        Drops edges that touch changed/deleted files, and all *outgoing* edges
+        from ``rebuild_origins`` (those are replaced by ``partial_graph``).
+        """
+        drop_touch = {p.replace("\\", "/") for p in (changed_paths + deleted_paths)}
+        rebuild = {p.replace("\\", "/") for p in (rebuild_origins or set())} | drop_touch
 
         def keep_file_edge(e: FileDependencyEdge) -> bool:
-            return e.source not in drop and e.target not in drop
+            if e.source in rebuild:
+                return False
+            if e.target in drop_touch:
+                return False
+            return True
 
         def keep_call_edge(e: CallEdge) -> bool:
             src = e.caller.split("::", 1)[0]
             dst = e.callee.split("::", 1)[0]
-            return src not in drop and dst not in drop
+            if src in rebuild:
+                return False
+            if dst in drop_touch:
+                return False
+            return True
+
+        def keep_inherit_edge(e: InheritEdge) -> bool:
+            src = e.child.split("::", 1)[0]
+            dst = e.parent.split("::", 1)[0]
+            if src in rebuild:
+                return False
+            if dst in drop_touch:
+                return False
+            return True
 
         file_edges = [e for e in existing.file_edges if keep_file_edge(e)]
         call_edges = [e for e in existing.call_edges if keep_call_edge(e)]
+        inherit_edges = [e for e in existing.inherit_edges if keep_inherit_edge(e)]
         file_edges.extend(partial_graph.file_edges)
         call_edges.extend(partial_graph.call_edges)
+        inherit_edges.extend(partial_graph.inherit_edges)
         return DependencyGraph(
             repo_id=partial_graph.repo_id or existing.repo_id,
             commit_hash=partial_graph.commit_hash or existing.commit_hash,
             file_edges=self._dedupe_file_edges(file_edges),
             call_edges=self._dedupe_call_edges(call_edges),
+            inherit_edges=self._dedupe_inherit_edges(inherit_edges),
         )
 
     @staticmethod
@@ -229,6 +302,18 @@ class DependencyGraphBuilder:
         out: list[CallEdge] = []
         for e in edges:
             key = (e.caller, e.callee, e.edge_type)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(e)
+        return out
+
+    @staticmethod
+    def _dedupe_inherit_edges(edges: list[InheritEdge]) -> list[InheritEdge]:
+        seen: set[tuple[str, str, str]] = set()
+        out: list[InheritEdge] = []
+        for e in edges:
+            key = (e.child, e.parent, e.relation)
             if key in seen:
                 continue
             seen.add(key)
@@ -261,9 +346,11 @@ class DependencyGraphBuilder:
         language: str | None,
         path_index: dict[str, str],
         files: dict[str, str],
-    ) -> tuple[set[str], dict[str, str]]:
+    ) -> tuple[set[str], dict[str, str], dict[str, str]]:
+        """Return (import targets, local_name→file, local_name→original_symbol)."""
         targets: set[str] = set()
         name_to_file: dict[str, str] = {}
+        local_to_symbol: dict[str, str] = {}
 
         if language == "python":
             for mod in _PY_IMPORT.findall(content):
@@ -272,7 +359,9 @@ class DependencyGraphBuilder:
                     resolved = self._resolve_python_module(file_path, part, path_index, files)
                     if resolved:
                         targets.add(resolved)
-                        name_to_file[part.split(".")[-1]] = resolved
+                        local = part.split(".")[-1]
+                        name_to_file[local] = resolved
+                        local_to_symbol[local] = local
             for mod, names in _PY_IMPORT_FROM.findall(content):
                 resolved = self._resolve_python_module(file_path, mod, path_index, files)
                 if resolved:
@@ -281,9 +370,20 @@ class DependencyGraphBuilder:
                         raw = raw.strip()
                         if not raw or raw.startswith("("):
                             continue
-                        name = raw.split(" as ")[0].strip()
-                        if name and name != "*":
-                            name_to_file[name] = resolved
+                        # `login as auth_login` → local=auth_login, original=login
+                        if " as " in raw:
+                            original, _, alias = raw.partition(" as ")
+                            original = original.strip()
+                            alias = alias.strip()
+                            if not original or original == "*" or not alias:
+                                continue
+                            name_to_file[alias] = resolved
+                            local_to_symbol[alias] = original
+                        else:
+                            name = raw.strip()
+                            if name and name != "*":
+                                name_to_file[name] = resolved
+                                local_to_symbol[name] = name
 
         elif language in {"javascript", "typescript", "tsx"}:
             specs = set(_JS_FROM.findall(content))
@@ -294,7 +394,9 @@ class DependencyGraphBuilder:
                 if resolved:
                     targets.add(resolved)
                     # crude: last path segment as imported binding hint
-                    name_to_file[Path(spec).stem] = resolved
+                    local = Path(spec).stem
+                    name_to_file[local] = resolved
+                    local_to_symbol[local] = local
 
         elif language == "java":
             for pkg in _JAVA_IMPORT.findall(content):
@@ -304,8 +406,9 @@ class DependencyGraphBuilder:
                 if candidate:
                     targets.add(candidate)
                     name_to_file[simple] = candidate
+                    local_to_symbol[simple] = simple
 
-        return targets, name_to_file
+        return targets, name_to_file, local_to_symbol
 
     def _resolve_python_module(
         self,
@@ -374,60 +477,6 @@ class DependencyGraphBuilder:
                 return hit
         stem = Path(spec).stem
         return path_index.get(stem) if path_index.get(stem) in files else None
-
-    def _resolve_receiver_call(
-        self,
-        *,
-        receiver: str,
-        callee_name: str,
-        field_types: dict[str, str],
-        import_map: dict[str, str],
-        path_index: dict[str, str],
-        definitions_by_file: dict[str, list[Definition]],
-        caller_file: str,
-    ) -> str | None:
-        """
-        Resolve `receiver.callee_name(...)` to a symbol_ref.
-
-        receiver may be a field (looked up in field_types) or a type/simple class name.
-        """
-        type_name = field_types.get(receiver, receiver)
-        # strip generics / arrays: List<Foo> isn't expected here; Foo[] -> Foo
-        type_name = type_name.split("<", 1)[0].rstrip("[]").strip()
-        if not type_name:
-            return None
-
-        def _lookup_method(target: str) -> str | None:
-            if not target or target not in definitions_by_file:
-                return None
-            methods = [
-                d
-                for d in definitions_by_file[target]
-                if d.kind == SymbolKind.METHOD and d.name == callee_name
-            ]
-            if not methods:
-                return None
-            chosen = next(
-                (d for d in methods if d.parent_name in {type_name, f"{type_name}Impl"}),
-                methods[0],
-            )
-            return _symbol_ref(target, chosen)
-
-        # Prefer concrete *Impl when present (Spring style interface + impl)
-        impl_name = f"{type_name}Impl"
-        impl_file = import_map.get(impl_name) or path_index.get(impl_name)
-        # also search path_index stems that end with Impl matching type
-        if impl_file is None:
-            for key, path in path_index.items():
-                if key.endswith(impl_name) or Path(str(path)).stem == impl_name:
-                    impl_file = path
-                    break
-        resolved = _lookup_method(impl_file) if impl_file else None
-        if resolved:
-            return resolved
-
-        target_file = import_map.get(type_name) or path_index.get(type_name)
-        return _lookup_method(target_file)
 
     def _java_field_types(self, content: str) -> dict[str, str]:
         """fieldName -> simple type name (best-effort via tree-sitter + regex)."""
@@ -513,7 +562,7 @@ class DependencyGraphBuilder:
         for i, line in enumerate(content.splitlines(), start=1):
             owner = line_owner.get(i)
             caller = (
-                _symbol_ref(file_path, owner) if owner else f"{file_path}::__module__"
+                symbol_ref(file_path, owner) if owner else f"{file_path}::__module__"
             )
             for match in _RECEIVER_CALL.finditer(line):
                 receiver, name = match.group(1), match.group(2)
@@ -567,7 +616,7 @@ class DependencyGraphBuilder:
                 continue
             line = node.start_point[0] + 1
             owner = line_owner.get(line)
-            caller = _symbol_ref(file_path, owner) if owner else f"{file_path}::__module__"
+            caller = symbol_ref(file_path, owner) if owner else f"{file_path}::__module__"
             results.append((caller, name, receiver))
         return results
 

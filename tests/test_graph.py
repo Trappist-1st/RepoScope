@@ -35,6 +35,32 @@ def test_python_import_and_call_edges():
     )
 
 
+def test_python_from_import_alias_call_edge():
+    """`from x import login as auth_login` must create a call edge to original `login`."""
+    parser = AstParser()
+    files = {
+        "svc.py": "def login(u: str) -> str:\n    return u\n",
+        "api.py": (
+            "from svc import login as auth_login\n\n"
+            "def login(u: str) -> str:\n    return auth_login(u)\n"
+        ),
+    }
+    definitions_by_file = {
+        path: parser.parse_definitions(content, "python") for path, content in files.items()
+    }
+    graph = DependencyGraphBuilder().build(
+        repo_id="alias",
+        commit_hash=None,
+        files=files,
+        definitions_by_file=definitions_by_file,
+    )
+    assert any(
+        e.caller.endswith("api.py::login") and e.callee.endswith("svc.py::login")
+        for e in graph.call_edges
+    ), graph.call_edges
+    assert "svc.py::login" in callees_of(graph, "api.py::login")
+
+
 def test_js_relative_import_edge():
     parser = AstParser()
     files = {

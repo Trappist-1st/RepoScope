@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tree_sitter import Node, Query, QueryCursor
 
-from app.models.schemas import Definition, SymbolKind
+from app.models.schemas import Definition, SuperTypeRef, SymbolKind
 from app.parsing.languages import get_language, get_parser
 
 # Captures:
@@ -123,7 +123,6 @@ def _find_enclosing_class(node: Node, source: bytes) -> str | None:
             for child in parent.children:
                 if child.type in {"identifier", "type_identifier", "property_identifier"}:
                     return _text(child, source)
-            # fallback: look for name field
             name_node = parent.child_by_field_name("name")
             if name_node is not None:
                 return _text(name_node, source)
@@ -154,6 +153,106 @@ def _infer_kind(def_node: Node) -> SymbolKind:
     if _has_class_ancestor(def_node):
         return SymbolKind.METHOD
     return SymbolKind.FUNCTION
+
+
+def _simple_type_name(node: Node, source: bytes) -> str | None:
+    """Reduce a type expression to a simple identifier (strip generics / packages)."""
+    if node.type in {"identifier", "type_identifier", "property_identifier"}:
+        return _text(node, source)
+    if node.type == "generic_type":
+        name = node.child_by_field_name("type") or node.child_by_field_name("name")
+        if name is not None:
+            return _simple_type_name(name, source)
+        for child in node.children:
+            hit = _simple_type_name(child, source)
+            if hit:
+                return hit
+    if node.type in {"scoped_type_identifier", "member_expression", "attribute"}:
+        last = None
+        stack = [node]
+        while stack:
+            cur = stack.pop()
+            if cur.type in {"identifier", "type_identifier", "property_identifier"}:
+                last = _text(cur, source)
+            stack.extend(reversed(cur.children))
+        return last
+    for child in node.children:
+        hit = _simple_type_name(child, source)
+        if hit:
+            return hit
+    return None
+
+
+def _extract_bases(def_node: Node, source: bytes, language: str) -> list[SuperTypeRef]:
+    """Extract extends/implements simple names from a class/interface definition node."""
+    if def_node.type not in _CLASS_NODE_TYPES:
+        return []
+
+    bases: list[SuperTypeRef] = []
+    seen: set[tuple[str, str]] = set()
+
+    def _add(name: str | None, relation: str) -> None:
+        if not name or name in {"object", "Object", "Any", "Protocol"}:
+            return
+        key = (name, relation)
+        if key in seen:
+            return
+        seen.add(key)
+        bases.append(SuperTypeRef(name=name, relation=relation))  # type: ignore[arg-type]
+
+    if language == "python":
+        supers = def_node.child_by_field_name("superclasses")
+        if supers is not None:
+            for child in supers.children:
+                if child.type in {"identifier", "attribute"}:
+                    _add(_simple_type_name(child, source), "extends")
+        return bases
+
+    if language == "java":
+        for child in def_node.children:
+            if child.type == "superclass":
+                _add(_simple_type_name(child, source), "extends")
+            elif child.type in {"super_interfaces", "extends_interfaces"}:
+                for gc in child.children:
+                    if gc.type == "type_list":
+                        for t in gc.children:
+                            rel = (
+                                "implements"
+                                if def_node.type == "class_declaration"
+                                else "extends"
+                            )
+                            _add(_simple_type_name(t, source), rel)
+                    elif gc.type in {
+                        "type_identifier",
+                        "generic_type",
+                        "scoped_type_identifier",
+                    }:
+                        rel = (
+                            "implements"
+                            if def_node.type == "class_declaration"
+                            else "extends"
+                        )
+                        _add(_simple_type_name(gc, source), rel)
+            elif child.type == "interfaces":
+                for gc in child.children:
+                    _add(_simple_type_name(gc, source), "implements")
+        return bases
+
+    # javascript / typescript / tsx
+    for child in def_node.children:
+        if child.type == "class_heritage":
+            for hc in child.children:
+                if hc.type == "extends_clause":
+                    _add(_simple_type_name(hc, source), "extends")
+                elif hc.type == "implements_clause":
+                    for ic in hc.children:
+                        _add(_simple_type_name(ic, source), "implements")
+        elif child.type == "extends_clause":
+            _add(_simple_type_name(child, source), "extends")
+        elif child.type == "implements_clause":
+            for ic in child.children:
+                _add(_simple_type_name(ic, source), "implements")
+    return bases
 
 
 class AstParser:
@@ -188,6 +287,10 @@ class AstParser:
             if kind == SymbolKind.METHOD:
                 parent_name = _find_enclosing_class(def_node, source)
 
+            bases: list[SuperTypeRef] = []
+            if kind == SymbolKind.CLASS:
+                bases = _extract_bases(def_node, source, language)
+
             key = (name, start_line, end_line, kind.value)
             if key in seen:
                 continue
@@ -201,6 +304,7 @@ class AstParser:
                     end_line=end_line,
                     language=language if language != "tsx" else "typescript",
                     parent_name=parent_name,
+                    bases=bases,
                 )
             )
 

@@ -20,12 +20,17 @@ from app.mcp.schemas import (
     ArchitectureResult,
     BootstrapCoreFileOut,
     BootstrapModuleOut,
+    CallPathOut,
     CitationOut,
+    ContextExploreResult,
     DefinitionOut,
     DependenciesResult,
     DependencyEdgeOut,
     Evidence,
+    ExploreSeedOut,
     FindingOut,
+    ImpactHitOut,
+    ImpactResult,
     InitialContextResult,
     KeyFlow,
     MCPMeta,
@@ -126,6 +131,135 @@ class RepoScopeFacade:
         else:
             status = "cached"
         return result, status
+
+    def _mcp_meta(
+        self,
+        *,
+        repo_url: str,
+        ingest: IngestResult,
+        indexing_status: IndexingStatus,
+        run_id: str,
+        took_ms: int,
+        warnings: list[str] | None = None,
+    ) -> MCPMeta:
+        return MCPMeta(
+            repo_id=ingest.repo_id,
+            repo_url=repo_url,
+            commit_hash=ingest.commit_hash or None,
+            run_id=run_id,
+            took_ms=took_ms,
+            indexing_status=indexing_status,
+            warnings=list(warnings or self._audit_warnings()),
+            audit_backend=self.audit_store.backend,
+            graph_update_mode=ingest.graph_update_mode,
+            changed_files=list(ingest.changed_files[:20]),
+            sync_took_ms=ingest.sync_took_ms,
+        )
+
+    def analyze_impact(
+        self,
+        repo_url: str,
+        symbol_name: str,
+        *,
+        depth: int = 2,
+        direction: Literal["affected", "depends_on", "both"] = "both",
+        limit: int = 50,
+        force_reindex: bool = False,
+    ) -> ImpactResult:
+        """N-hop impact analysis: who is affected by changing a symbol, and what it depends on."""
+        from app.graph.impact import analyze_impact, format_impact_markdown
+
+        t0 = time.perf_counter()
+        depth = max(1, min(depth, 8))
+        limit = max(1, min(limit, 200))
+        ingest, indexing_status = self.ensure_indexed(repo_url, force_reindex=force_reindex)
+        warnings = self._audit_warnings()
+        _, graph = self.ingestion.load_artifacts(ingest.repo_id)
+        chunk_index = self._chunks_by_symbol(ingest.repo_id)
+        resolved = self._resolve_symbol_refs(symbol_name, graph, chunk_index)
+
+        notes: list[str] = []
+        if len(resolved) > 1:
+            notes.append(
+                "Multiple symbols matched; impact is merged. "
+                "Pass `file::symbol` for precise targeting."
+            )
+        if not resolved:
+            notes.append(f"No symbol resolved for '{symbol_name}'.")
+
+        report = analyze_impact(
+            graph,
+            resolved,
+            depth=depth,
+            direction=direction,
+            limit=limit,
+        )
+        notes.extend(report.notes)
+
+        def _hit(edge) -> ImpactHitOut:
+            ev: list[Evidence] = []
+            chunk = chunk_index.get(edge.symbol_ref)
+            if chunk is None and "::" in edge.symbol_ref:
+                fp, _, sym = edge.symbol_ref.partition("::")
+                chunk = chunk_index.get(f"{fp}::{sym.split('.', 1)[0]}")
+            if chunk is not None:
+                ev = [self._evidence_from_chunk(chunk)]
+            return ImpactHitOut(
+                symbol_ref=edge.symbol_ref,
+                relation=edge.relation,
+                hops=edge.hops,
+                direction=edge.direction,
+                evidence=ev,
+            )
+
+        affected = [_hit(e) for e in report.affected]
+        depends = [_hit(e) for e in report.depends_on]
+        low = (not resolved) or (
+            (direction in {"affected", "both"} and not affected)
+            and (direction in {"depends_on", "both"} and not depends)
+        )
+
+        took_ms = int((time.perf_counter() - t0) * 1000)
+        run_id = new_run_id()
+        meta = self._mcp_meta(
+            repo_url=repo_url,
+            ingest=ingest,
+            indexing_status=indexing_status,
+            run_id=run_id,
+            took_ms=took_ms,
+            warnings=warnings,
+        )
+        result = ImpactResult(
+            meta=meta,
+            query={
+                "symbol_name": symbol_name,
+                "resolved_refs": resolved,
+                "depth": depth,
+                "direction": direction,
+                "limit": limit,
+            },
+            seeds=resolved,
+            affected=affected,
+            depends_on=depends,
+            affected_files=report.affected_files,
+            depends_on_files=report.depends_on_files,
+            report_markdown=format_impact_markdown(report),
+            notes=notes,
+            low_confidence=low,
+        )
+        self._persist_run(
+            run_id=run_id,
+            repo_id=ingest.repo_id,
+            question=f"impact:{symbol_name}",
+            intent="impact",
+            result=result.model_dump(),
+            review_passed=not low,
+            low_confidence=low,
+            status="ok" if resolved else "partial",
+            warnings=warnings,
+            node_timings={"total_ms": float(took_ms)},
+        )
+        return result
 
     def get_repo_summary(
         self,
@@ -668,6 +802,8 @@ class RepoScopeFacade:
         citation: CitationOut | None = None
         truncated = False
         outline: list[DefinitionOut] = []
+        total_lines: int | None = None
+        next_start_line: int | None = None
 
         if symbol_name:
             chunk_index = self._chunks_by_symbol(ingest.repo_id)
@@ -685,18 +821,40 @@ class RepoScopeFacade:
                 )
         elif start_line is not None:
             end = end_line if end_line is not None else start_line
-            content, citation, truncated = self._read_file_range(ingest.local_path, fp, start_line, end)
+            content, citation, truncated, total_lines, next_start_line = self._read_file_range(
+                ingest.local_path, fp, start_line, end
+            )
             if not content:
                 notes.append(f"Could not read lines {start_line}-{end} of '{fp}'.")
 
         if not content:
-            content, whole_truncated = self._read_whole_file(ingest.local_path, fp)
+            content, whole_truncated, total_lines, next_start_line = self._read_whole_file(
+                ingest.local_path, fp
+            )
             truncated = truncated or whole_truncated
             if not content:
                 notes.append(f"Could not read '{fp}' from the checked-out workspace.")
             else:
-                citation = citation or CitationOut.from_parts(fp, 1, content.count("\n") + 1)
+                end_shown = content.count("\n") + (1 if content else 0)
+                citation = citation or CitationOut.from_parts(fp, 1, end_shown)
             outline = self._file_outline(ingest.repo_id, fp)
+
+        if truncated:
+            if next_start_line is not None:
+                notes.append(
+                    f"Truncated at {VIEW_LINE_LIMIT} lines / {VIEW_CHAR_LIMIT} chars. "
+                    f"Continue with start_line={next_start_line}"
+                    + (f", end_line={min(next_start_line + VIEW_LINE_LIMIT - 1, total_lines)}"
+                       if total_lines else "")
+                    + "."
+                )
+            else:
+                notes.append(
+                    f"Truncated at {VIEW_LINE_LIMIT} lines / {VIEW_CHAR_LIMIT} chars; "
+                    "pass start_line/end_line or symbol_name to narrow the view."
+                )
+            if not outline:
+                outline = self._file_outline(ingest.repo_id, fp)
 
         took_ms = int((time.perf_counter() - t0) * 1000)
         run_id = new_run_id()
@@ -718,6 +876,8 @@ class RepoScopeFacade:
             content=content,
             outline=outline,
             truncated=truncated,
+            total_lines=total_lines,
+            next_start_line=next_start_line,
             notes=notes,
         )
         self._persist_run(
@@ -802,35 +962,239 @@ class RepoScopeFacade:
         )
         return result
 
+    def context_explore(
+        self,
+        repo_url: str,
+        query: str,
+        *,
+        top_k: int = 8,
+        blast_depth: int = 2,
+        include_flow: bool | None = None,
+        force_reindex: bool = False,
+    ) -> ContextExploreResult:
+        """One-shot surgical context: seeds + must-read + paths + blast radius."""
+        from app.mcp.context_explore import (
+            blast_radius_for_seeds,
+            call_path_from_flow,
+            call_paths_from_callees,
+            format_explore_markdown,
+            looks_like_flow_question,
+            seeds_from_chunks,
+        )
+        from app.intelligence.flow_tracer import FlowTracer
+        from app.models.schemas import Chunk
+        from app.retrieval.schemas import RetrieveRequest
+
+        t0 = time.perf_counter()
+        ingest, indexing_status = self.ensure_indexed(repo_url, force_reindex=force_reindex)
+        warnings = self._audit_warnings()
+        notes: list[str] = []
+        if indexing_status == "full_reindex":
+            warnings.append("indexing_status=full_reindex (potentially slow for large repos)")
+        if ingest.graph_update_mode == "merge":
+            notes.append(
+                f"graph synced via merge ({len(ingest.changed_files)} changed file(s))"
+            )
+        elif ingest.graph_update_mode == "cached":
+            notes.append("graph cache hit (no file changes)")
+
+        q = (query or "").strip()
+        if not q:
+            q = "repository entrypoints and core modules"
+            notes.append("Empty query; defaulted to core orientation.")
+
+        # 1) Hybrid search → seeds
+        top_n = max(1, min(top_k, 20))
+        resp = self.retrieval.retrieve(
+            RetrieveRequest(
+                repo_id=ingest.repo_id,
+                query=q,
+                final_top_n=top_n,
+                graph_expand=True,
+            )
+        )
+        hits = list(resp.hits or [])
+        if not hits:
+            hits = list(self.retrieval.explore(ingest.repo_id, limit=top_n))
+            if hits:
+                notes.append("No ranked hits; seeded from explore() diversity sample.")
+        elif resp.expanded_hits:
+            notes.append(
+                f"{len(resp.expanded_hits)} graph-expanded hits available for blast radius."
+            )
+
+        chunks: list[Chunk] = []
+        scores: list[float] = []
+        for h in hits:
+            chunks.append(
+                Chunk(
+                    chunk_id=h.chunk_id,
+                    file_path=h.citation.file_path,
+                    start_line=h.citation.start_line,
+                    end_line=h.citation.end_line,
+                    content=h.content or "",
+                    kind=h.kind or "code",
+                    symbol_name=h.symbol_name,
+                    language=h.language,
+                )
+            )
+            scores.append(float(h.score or 0.0))
+
+        if not chunks:
+            all_chunks, _ = self.ingestion.load_artifacts(ingest.repo_id)
+            chunks = all_chunks[:top_n]
+            scores = [0.1] * len(chunks)
+            notes.append("Search empty; seeded from indexed chunk sample.")
+
+        seeds = seeds_from_chunks(chunks, scores=scores, reason="search", limit=top_n)
+        must_read = list(seeds[: min(5, len(seeds))])
+
+        _, graph = self.ingestion.load_artifacts(ingest.repo_id)
+        seed_refs = [s.symbol_ref for s in seeds if "::" in s.symbol_ref]
+
+        # 2) Call paths: FlowTracer when question looks like a flow, else callee chains
+        call_paths: list[CallPathOut] = []
+        want_flow = include_flow if include_flow is not None else looks_like_flow_question(q)
+        if want_flow:
+            try:
+                kg = self._load_or_build_knowledge_graph(ingest.repo_id)
+                trace = FlowTracer().trace(kg, q)
+                fp = call_path_from_flow(trace)
+                if fp is not None:
+                    call_paths.append(fp)
+                    chunk_index = self._chunks_by_symbol(ingest.repo_id)
+                    for st in fp.steps[:5]:
+                        ch = chunk_index.get(st.symbol_ref)
+                        if ch is None:
+                            continue
+                        must_read.append(
+                            ExploreSeedOut(
+                                symbol_ref=st.symbol_ref,
+                                score=fp.score,
+                                reason="flow_step",
+                                citation=CitationOut.from_parts(
+                                    ch.file_path, ch.start_line, ch.end_line
+                                ),
+                                snippet=(ch.content or "")[:800],
+                            )
+                        )
+            except Exception as exc:  # noqa: BLE001
+                notes.append(f"FlowTracer skipped: {exc}")
+
+        if not call_paths:
+            for ref in seed_refs[:3]:
+                path = call_paths_from_callees(graph, ref, max_depth=4)
+                if path is not None:
+                    call_paths.append(path)
+
+        # Dedupe must_read by symbol_ref
+        seen_mr: set[str] = set()
+        deduped_mr: list[ExploreSeedOut] = []
+        for item in must_read:
+            if item.symbol_ref in seen_mr:
+                continue
+            seen_mr.add(item.symbol_ref)
+            deduped_mr.append(item)
+        must_read = deduped_mr[:8]
+
+        blast = blast_radius_for_seeds(
+            graph,
+            seed_refs,
+            depth=max(1, min(blast_depth, 4)),
+            limit=40,
+        )
+
+        report = format_explore_markdown(
+            query=q,
+            seeds=seeds,
+            must_read=must_read,
+            call_paths=call_paths,
+            blast_radius=blast,
+        )
+        low = not seeds or (not call_paths and not blast)
+
+        took_ms = int((time.perf_counter() - t0) * 1000)
+        run_id = new_run_id()
+        meta = self._mcp_meta(
+            repo_url=repo_url,
+            ingest=ingest,
+            indexing_status=indexing_status,
+            run_id=run_id,
+            took_ms=took_ms,
+            warnings=warnings,
+        )
+        result = ContextExploreResult(
+            meta=meta,
+            query=q,
+            seeds=seeds,
+            must_read=must_read,
+            call_paths=call_paths,
+            blast_radius=blast,
+            report_markdown=report,
+            notes=notes,
+            low_confidence=low,
+        )
+        self._persist_run(
+            run_id=run_id,
+            repo_id=ingest.repo_id,
+            question=f"context_explore:{q[:120]}",
+            intent="context_explore",
+            result=result.model_dump(),
+            review_passed=not low,
+            low_confidence=low,
+            status="ok" if seeds else "partial",
+            warnings=warnings,
+            node_timings={"total_ms": float(took_ms)},
+        )
+        return result
+
     def _read_file_range(
         self, local_path: str, file_path: str, start: int, end: int
-    ) -> tuple[str, CitationOut | None, bool]:
+    ) -> tuple[str, CitationOut | None, bool, int | None, int | None]:
         abs_path = Path(local_path) / file_path
         try:
             lines = abs_path.read_text(encoding="utf-8", errors="replace").splitlines()
         except OSError:
-            return "", None, False
+            return "", None, False, None, None
         n = len(lines)
         if n == 0:
-            return "", None, False
+            return "", None, False, 0, None
         s = max(1, min(start, n))
         e = max(s, min(end, n))
         truncated = (e - s + 1) > VIEW_LINE_LIMIT
         if truncated:
             e = s + VIEW_LINE_LIMIT - 1
         snippet = "\n".join(lines[s - 1 : e])
-        return snippet, CitationOut.from_parts(file_path, s, e), truncated
+        # Also respect char budget
+        if len(snippet) > VIEW_CHAR_LIMIT:
+            truncated = True
+            # shrink by lines until under budget
+            while e > s and len("\n".join(lines[s - 1 : e])) > VIEW_CHAR_LIMIT:
+                e -= 1
+            snippet = "\n".join(lines[s - 1 : e])
+        next_start = e + 1 if truncated and e < n else None
+        return snippet, CitationOut.from_parts(file_path, s, e), truncated, n, next_start
 
-    def _read_whole_file(self, local_path: str, file_path: str) -> tuple[str, bool]:
+    def _read_whole_file(
+        self, local_path: str, file_path: str
+    ) -> tuple[str, bool, int | None, int | None]:
         abs_path = Path(local_path) / file_path
         try:
             raw = abs_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
-            return "", False
+            return "", False, None, None
         lines = raw.splitlines()
-        truncated = len(lines) > VIEW_LINE_LIMIT or len(raw) > VIEW_CHAR_LIMIT
-        content = "\n".join(lines[:VIEW_LINE_LIMIT])[:VIEW_CHAR_LIMIT]
-        return content, truncated
+        n = len(lines)
+        truncated = n > VIEW_LINE_LIMIT or len(raw) > VIEW_CHAR_LIMIT
+        end = min(n, VIEW_LINE_LIMIT)
+        content = "\n".join(lines[:end])
+        if len(content) > VIEW_CHAR_LIMIT:
+            truncated = True
+            while end > 1 and len("\n".join(lines[:end])) > VIEW_CHAR_LIMIT:
+                end -= 1
+            content = "\n".join(lines[:end])
+        next_start = end + 1 if truncated and end < n else None
+        return content, truncated, n, next_start
 
     def _file_outline(self, repo_id: str, file_path: str) -> list[DefinitionOut]:
         defs_path = self.artifact_dir / repo_id / "definitions.json"

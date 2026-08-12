@@ -31,6 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "httpx>=0.27"]
+watch = ["watchdog>=4.0"]
 retrieval = [
     "sentence-transformers>=3.0",
     # torch>=2.13 hits WinError 1114 (c10.dll) on many Windows setups
@@ -39,7 +40,7 @@ retrieval = [
 workflow = ["langgraph>=0.2"]
 api = ["fastapi>=0.110", "uvicorn[standard]>=0.27"]
 mcp = ["mcp>=1.0"]
-all = ["reposcope[dev,retrieval,workflow,api,mcp]"]
+all = ["reposcope[dev,retrieval,workflow,api,mcp,watch]"]
 
 [tool.setuptools.packages.find]
 where = ["."]

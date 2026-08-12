@@ -235,3 +235,92 @@ def test_http_post_architecture(tmp_path: Path):
         assert body["primary_pattern"]
         assert body["meta"]["run_id"]
         assert body["finding_count"] >= 1
+
+
+def test_http_post_mcp_tool_routes(tmp_path: Path):
+    app = create_app()
+    facade = _facade(tmp_path)
+    repo = str(SAMPLE_REPO)
+    with TestClient(app) as client:
+        app.state.facade = facade
+
+        search = client.post("/search", json={"repo_source": repo, "query": "greet", "top_k": 5})
+        assert search.status_code == 200, search.text
+        assert search.json()["hits"]
+
+        source = client.post(
+            "/source",
+            json={"repo_source": repo, "file_path": "py_pkg/a.py", "symbol_name": "greet"},
+        )
+        assert source.status_code == 200, source.text
+        assert "def greet" in source.json()["content"]
+
+        deps = client.post(
+            "/dependencies",
+            json={"repo_source": repo, "symbol_name": "greet", "direction": "both"},
+        )
+        assert deps.status_code == 200, deps.text
+        assert "resolved_refs" in deps.json()["query"]
+
+        impact = client.post(
+            "/impact",
+            json={"repo_source": repo, "symbol_name": "greet", "depth": 2},
+        )
+        assert impact.status_code == 200, impact.text
+        assert impact.json()["meta"]["run_id"]
+
+        bootstrap = client.post("/initial-context", json={"repo_source": repo})
+        assert bootstrap.status_code == 200, bootstrap.text
+        assert bootstrap.json()["languages"]
+
+        explore = client.post(
+            "/explore",
+            json={"repo_source": repo, "query": "greet helper", "include_flow": False},
+        )
+        assert explore.status_code == 200, explore.text
+        body = explore.json()
+        assert body["report_markdown"]
+        assert body["seeds"] or body["must_read"]
+
+        summary = client.post("/summary", json={"repo_source": repo})
+        assert summary.status_code == 200, summary.text
+        assert summary.json()["report_markdown"]
+
+        refactor = client.post(
+            "/refactor",
+            json={"repo_source": repo, "file_path": "py_pkg/a.py", "focus": "coupling"},
+        )
+        assert refactor.status_code == 200, refactor.text
+        assert refactor.json()["meta"]["run_id"]
+
+
+def test_context_explore_returns_pack(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.context_explore(
+        str(SAMPLE_REPO),
+        query="greet helper shout",
+        top_k=5,
+        include_flow=False,
+    )
+    assert result.meta.run_id
+    assert result.meta.graph_update_mode in {"full", "merge", "cached", None}
+    assert result.report_markdown
+    assert "Context Explore" in result.report_markdown
+    assert result.seeds or result.must_read
+    record = facade.audit_store.get(result.meta.run_id)
+    assert record is not None
+    assert record.intent == "context_explore"
+
+
+def test_context_explore_flow_question(tmp_path: Path):
+    facade = _facade(tmp_path)
+    result = facade.context_explore(
+        str(FASTAPI_LOGIN),
+        query="How does login work?",
+        top_k=6,
+    )
+    assert result.meta.run_id
+    assert result.seeds or result.call_paths
+    # Flow-ish questions should prefer flow_tracer paths when available
+    if result.call_paths:
+        assert any(p.source in {"flow_tracer", "graph"} for p in result.call_paths)

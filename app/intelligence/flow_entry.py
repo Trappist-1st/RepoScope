@@ -78,7 +78,26 @@ _HANDLER_NAMES = {
     "run",
     "start",
     "trigger",
+    "agentroute",
+    "executetools",
+    "compilecontext",
 }
+
+# Names that look like handlers but are rarely business entry points.
+_ENTRY_DEMOTE_NAMES = frozenset(
+    {
+        "health",
+        "forbidden",
+        "unauthorized",
+        "ping",
+        "ready",
+        "liveness",
+        "readiness",
+        "tostring",
+        "hashcode",
+        "equals",
+    }
+)
 
 
 def discover_entries(
@@ -109,6 +128,8 @@ def discover_entries(
         if language_prefer and node.language and node.language not in language_prefer:
             continue
         if _is_constructor(node):
+            continue
+        if node.name.lower().replace("_", "") in _ENTRY_DEMOTE_NAMES:
             continue
 
         role = role_of(role_index, node.id)
@@ -166,6 +187,9 @@ def discover_entries(
 
     # Prefer methods/functions over classes when scores are close
     candidates = _prefer_callable_over_class(candidates)
+
+    # Prefer HTTP/controller handlers over same-named service methods
+    candidates = _prefer_controller_over_service(candidates)
 
     # If class won but has a topic-matching method child, promote child
     candidates = _promote_matching_methods(graph, candidates, terms, role_index, topic)
@@ -316,8 +340,20 @@ def _path_match_score(node: KnowledgeNode, terms: list[str]) -> tuple[float, lis
             best = strength
             reasons.append(f"path:{term}")
     # structural path bonus for API layers (topic-agnostic mild boost via role path)
-    if any(seg in path for seg in ("/controller", "/api/", "/web/", "/routes/", "/handlers/")):
-        best = max(best, 0.35)
+    if any(
+        seg in path
+        for seg in (
+            "/controller",
+            "/api/",
+            "/web/",
+            "/routes/",
+            "/handlers/",
+            "/orchestrator/",
+            "/graph/",
+            "/runtime/",
+        )
+    ):
+        best = max(best, 0.40)
         reasons.append("path_layer:api")
     return best, reasons[:3]
 
@@ -389,6 +425,9 @@ def _retrieval_boost_map(
         if not file_path:
             continue
         file_path = str(file_path).replace("\\", "/")
+        # Skip docs/markdown hits — they pollute entry discovery for code flows.
+        if _is_doc_path(file_path):
+            continue
         # map to nodes
         matched_ids: list[str] = []
         if sym:
@@ -418,6 +457,13 @@ def _retrieval_boost_map(
     return boost
 
 
+def _is_doc_path(path: str) -> bool:
+    p = path.replace("\\", "/").lower()
+    if p.startswith("docs/") or "/docs/" in p:
+        return True
+    return p.endswith((".md", ".markdown", ".rst", ".txt", ".adoc"))
+
+
 def _prefer_callable_over_class(candidates: list[EntryCandidate]) -> list[EntryCandidate]:
     if len(candidates) < 2:
         return candidates
@@ -430,6 +476,32 @@ def _prefer_callable_over_class(candidates: list[EntryCandidate]) -> list[EntryC
             rest = [c for c in candidates if c.node_id != alt.node_id]
             return [alt, *[c for c in rest if c.node_id != alt.node_id]]
     return candidates
+
+
+def _prefer_controller_over_service(candidates: list[EntryCandidate]) -> list[EntryCandidate]:
+    """When same short name appears as controller/API and service, prefer the HTTP entry."""
+    if len(candidates) < 2:
+        return candidates
+    top = candidates[0]
+    if top.role not in {FlowRole.SERVICE, FlowRole.UNKNOWN, FlowRole.REPOSITORY}:
+        return candidates
+    top_name = (top.node.name or "").lower()
+    for alt in candidates[1:6]:
+        if (alt.node.name or "").lower() != top_name:
+            continue
+        if alt.role != FlowRole.CONTROLLER and not _looks_like_api_path(alt.node.file_path):
+            continue
+        if top.score - alt.score > 0.20:
+            continue
+        alt.reasons = [*alt.reasons, "promoted_controller_over_service"]
+        rest = [c for c in candidates if c.node_id != alt.node_id]
+        return [alt, *rest]
+    return candidates
+
+
+def _looks_like_api_path(path: str | None) -> bool:
+    p = (path or "").replace("\\", "/").lower()
+    return any(seg in p for seg in ("/api/", "/controller", "/routes/", "/handlers/", "/web/"))
 
 
 def _promote_matching_methods(

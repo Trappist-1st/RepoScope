@@ -26,10 +26,10 @@ def build_knowledge_graph(
     definitions_by_file: dict[str, list[Definition]] | None = None,
 ) -> KnowledgeGraph:
     """
-    Lossless-ish projection of DependencyGraph into KnowledgeGraph v1.
+    Projection of DependencyGraph into KnowledgeGraph.
 
     - Nodes: file / class / function / method
-    - Edges: import / call  (inherit reserved; always empty in Iteration 1)
+    - Edges: import / call / inherit (extends|implements in edge.meta.relation)
     - Structure (file→class→method) via parent_id, not extra edge types
     """
     defs = definitions_by_file or {}
@@ -97,7 +97,30 @@ def build_knowledge_graph(
             meta={"same_file": e.same_file, "from": "call_edge"},
         )
 
-    # inherit: schema reserved; Iteration 1 produces none
+    for e in dependency_graph.inherit_edges:
+        child_id = symbol_ref_to_node_id(e.child)
+        parent_id = symbol_ref_to_node_id(e.parent)
+        _ensure_symbol_node_from_ref(nodes, e.child, orphan_refs)
+        _ensure_symbol_node_from_ref(nodes, e.parent, orphan_refs)
+        # Force class kind when we know these are type symbols
+        for nid in (child_id, parent_id):
+            node = nodes.get(nid)
+            if node is not None and node.kind == NodeKind.FUNCTION:
+                nodes[nid] = node.model_copy(update={"kind": NodeKind.CLASS})
+        eid = edge_id(EdgeType.INHERIT.value, child_id, parent_id)
+        edges[eid] = KnowledgeEdge(
+            id=eid,
+            source_id=child_id,
+            target_id=parent_id,
+            edge_type=EdgeType.INHERIT,
+            confidence="high" if e.same_file else "medium",
+            meta={
+                "relation": e.relation,
+                "same_file": e.same_file,
+                "from": "inherit_edge",
+            },
+        )
+
     stats = _compute_stats(nodes, edges, orphan_refs)
     return KnowledgeGraph(
         schema_version="1.0",
@@ -109,7 +132,7 @@ def build_knowledge_graph(
         source=KnowledgeGraphSource(
             dependency_graph=True,
             definitions=has_definitions,
-            inherit_supported=False,
+            inherit_supported=True,
         ),
     )
 
@@ -124,6 +147,13 @@ def _collect_file_paths(
         paths.add(e.target.replace("\\", "/"))
     for e in graph.call_edges:
         for ref in (e.caller, e.callee):
+            try:
+                path, _ = parse_symbol_ref(ref)
+                paths.add(path)
+            except ValueError:
+                continue
+    for e in graph.inherit_edges:
+        for ref in (e.child, e.parent):
             try:
                 path, _ = parse_symbol_ref(ref)
                 paths.add(path)

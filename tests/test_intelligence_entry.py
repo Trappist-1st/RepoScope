@@ -121,6 +121,27 @@ def test_discover_prefers_controller_login():
         assert ids.index(ctrl) < ids.index(svc)
 
 
+def test_discover_demotes_health_and_prefers_api_path_login():
+    """Same-named service login must lose to /api/ login; health is not an entry."""
+    api = "app/api/auth.py"
+    svc = "app/services/auth_service.py"
+    graph = KnowledgeGraph(
+        repo_id="py-login",
+        nodes=[
+            _n(f"sym:{api}::login", NodeKind.FUNCTION, "login", api, language="python"),
+            _n(f"sym:{api}::health", NodeKind.FUNCTION, "health", api, language="python"),
+            _n(f"sym:{svc}::login", NodeKind.FUNCTION, "login", svc, language="python"),
+        ],
+        edges=[],
+    )
+    roles = build_role_index(graph)
+    hits = discover_entries(graph, "用户登录流程是什么？", role_index=roles, top_k=5)
+    assert hits
+    assert hits[0].node.file_path == api
+    assert hits[0].node.name == "login"
+    assert all(h.node.name != "health" for h in hits)
+
+
 def test_entry_hint_boosts_service():
     graph = _login_graph()
     roles = build_role_index(graph)

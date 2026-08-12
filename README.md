@@ -4,40 +4,39 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
 
-**Repository Intelligence Engine** for LLMs and agents.
+**Structure-aware Code Context Engine** for coding agents — delivered as an **MCP server** (and HTTP API).
 
-RepoScope turns a GitHub / local repository into structured, evidence-backed understanding:
+RepoScope pre-indexes a repository into a queryable knowledge graph, then returns
+**evidence-backed coding context** (`file:line`, call paths, inheritance, blast-radius
+signals) so agents like Cursor / Claude Code can stop rediscovering structure via
+blind grep/read loops.
 
 ```
 Repository
-    → AST + incremental index
+    → AST parse + symbol resolution (calls / imports / extends / implements)
     → KnowledgeGraph          (structure)
     → FlowTracer              (behavior)
     → ArchitectureAnalyzer    (design)
-    → MCP / HTTP API
+    → MCP / HTTP  →  context for agents
 ```
 
 It is **not** a coding agent, chat product, or auto-PR tool.
-It is infrastructure that gives models a reliable world-model of a codebase —
-plug it into Claude Code, Cursor, or your own agent loop as an MCP server or
-HTTP API, instead of re-grepping the repo on every turn.
+It is infrastructure: a world-model of the codebase that agents call as tools.
 
 ---
 
-## Why RepoScope (vs. grep, embeddings-only RAG, or a full coding agent)
+## Positioning
 
-| | RepoScope | Plain semantic RAG | ctags / grep | Full coding agent |
+| | RepoScope | Retrieval-only context engines | Graph surgical indexes (e.g. CodeGraph-style) | Full coding agent |
 |---|---|---|---|---|
-| Answers are evidence-backed (`file:line`) | ✅ | Partial (chunk-level) | ✅ | Depends on the agent |
-| Understands call graphs, not just text similarity | ✅ | ❌ | ❌ | Sometimes, opaquely |
-| Structured output (JSON/graph), not prose | ✅ | ❌ | ❌ | ❌ |
-| Architecture-level findings (patterns, coupling) | ✅ | ❌ | ❌ | Rarely |
+| Hybrid search + chunks | ✅ | ✅ | Partial | Sometimes |
+| Call / import / inherit graph | ✅ | Weak / expand-only | ✅ (core) | Opaque |
+| Business flow trace (`file:line`) | ✅ | ❌ | Partial | Sometimes |
+| Architecture (modules / coupling / patterns) | ✅ | ❌ | Rarely | Rarely |
 | Makes edits / opens PRs | ❌ (by design) | ❌ | ❌ | ✅ |
-| Multi-turn chat UI | ❌ (by design) | Depends | ❌ | ✅ |
 
-RepoScope's bet: agents don't need another chat window, they need a
-**queryable, cached, evidence-backed model of the repo** they can call as a
-tool. The three engines below are that model.
+**Subtype we commit to:** structure-aware context engine (graph + flow + architecture),
+not a pure “save tokens by chunk search” product and not an autonomous coder.
 
 ---
 
@@ -45,19 +44,19 @@ tool. The three engines below are that model.
 
 | Capability | Question it answers | Output |
 |---|---|---|
-| **KnowledgeGraph** | How is the code structured? | Files / classes / functions / methods + import/call edges |
+| **KnowledgeGraph** | How is the code structured? | Files / classes / functions / methods + import / call / **inherit** edges |
 | **FlowTracer** | How does a flow run? | Evidence-backed call path with file:line + roles |
 | **ArchitectureAnalyzer** | How is the system organized? | Modules, patterns, profile, coupling findings |
 
-Supporting stack (still available):
+Supporting stack:
 
-- Hybrid RAG (dense + BM25 + optional rerank / Qdrant)
+- Hybrid RAG (dense + BM25 + RRF + optional rerank / Qdrant)
 - LangGraph research workflow (`summary` / `interview` / `refactor`) with citation review
 - FastAPI + MCP tool surface for agents
 
 **Language coverage today:** Python, JavaScript, TypeScript, Java (via
 tree-sitter). Go / Rust / C-family are natural next targets — see
-[CONTRIBUTING.md](CONTRIBUTING.md) if you want to add one.
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -65,14 +64,14 @@ tree-sitter). Go / Rust / C-family are natural next targets — see
 
 **In scope**
 
-- Structured repository understanding
-- Evidence-backed findings (paths, symbols, lines)
-- Library + MCP + HTTP APIs for agents / tooling
+- Structured repository indexing and symbol resolution
+- Evidence-backed context for agents (paths, symbols, lines)
+- Library + MCP + HTTP APIs
 
 **Out of scope (by design)**
 
 - Coding Agent / automatic code edits
-- Chat UI / multi-turn explore sessions
+- Chat UI / multi-turn product UX
 - Infinite agent orchestration for its own sake
 
 ---
@@ -104,7 +103,6 @@ docker compose up -d
 ```python
 from app.db import InMemoryFilesRepository, InMemoryReposRepository
 from app.ingestion import IngestionPipeline
-from app.intelligence import load_knowledge_graph
 
 pipe = IngestionPipeline(
     files_repo=InMemoryFilesRepository(),
@@ -117,6 +115,9 @@ print(kg.stats.node_counts, kg.stats.edge_counts)
 
 Artifacts per repo: `chunks.json`, `graph.json`, `definitions.json`, `knowledge_graph.json`.
 
+Graph edges today: **import**, **call**, **inherit** (`extends` / `implements`),
+resolved across files via import maps + path index (Spring `*Impl` preference for calls).
+
 ### Flow Trace
 
 ```python
@@ -126,30 +127,6 @@ from app.intelligence.flow_format import format_flow_markdown
 trace = FlowTracer().trace(kg, "How does login work?")
 print(format_flow_markdown(trace))
 ```
-
-Example output (shape produced by `format_flow_markdown`, run against a
-Spring-style login flow fixture):
-
-```markdown
-## Flow Trace: login flow
-
-**Question:** How does login work?
-**Confidence:** high
-**Score:** 0.92
-
-### Steps
-1. **AuthController.login** (`entrypoint`, high) — `src/main/java/AuthController.java:24-31`
-2. **AuthService.authenticate** (`service`, high) — `src/main/java/AuthService.java:18-40`
-3. **UserRepository.findByUsername** (`repository`, high) — `src/main/java/UserRepository.java:12-15`
-
-### Alternatives
-1. `AuthController.login → SessionManager.create` (score=0.41, medium)
-```
-
-Every step carries a `file:line` and a role (`entrypoint` / `service` /
-`repository` / …) plus a confidence — nothing in the output is unattributed.
-
-HTTP:
 
 ```http
 POST /trace
@@ -163,17 +140,12 @@ from app.intelligence.architecture import analyze_architecture_markdown
 
 report, md = analyze_architecture_markdown(kg, workspace_root="path/to/repo")
 print(report.primary_pattern, len(report.findings))
-print(md)
 ```
-
-HTTP:
 
 ```http
 POST /architecture
 { "repo_source": "<git-url-or-path>" }
 ```
-
-Modules are path clusters with honest typing (`feature` / `layer` / `technical` / `unknown`) and `boundary_confidence` — not every folder is treated as a domain module.
 
 ---
 
@@ -185,14 +157,27 @@ python -m app.mcp.server
 
 | Tool | Purpose |
 |---|---|
-| `get_initial_context` | Repository "launchpad": README + profile + core modules + core file source |
+| **`context_explore`** | **Primary:** one-shot surgical context (seeds + must-read + call paths + blast radius) |
+| **`analyze_impact`** | Dedicated N-hop blast radius: who is affected / what it depends on |
+| `get_initial_context` | Repository launchpad: README + profile + core modules + core file source |
 | `get_repo_summary` | Citation-backed summary (LangGraph workflow) |
 | `search_code` | Hybrid BM25 + vector search over indexed code chunks |
 | `view_source` | Read a symbol, a line range, or a whole file (+ outline) |
-| `query_dependencies` | Callers / callees / imports |
+| `query_dependencies` | Callers / callees / imports (1-hop) |
 | `suggest_refactor` | Refactor suggestions with evidence |
 | `trace_flow` | Flow Trace (call path understanding) |
 | `analyze_architecture` | Modules / patterns / coupling / profile |
+
+Each tool auto-syncs the index on call (`meta.indexing_status`, `meta.graph_update_mode`:
+`full` / `merge` / `cached`). Small edits prefer **merge** graph updates.
+
+Optional **file watcher** keeps artifacts fresh between tool calls (poll by default;
+`watchdog` if installed):
+
+```bash
+python -m app.watch --repo /path/to/project
+# REPOSCOPE_WATCH_DEBOUNCE_MS=2000  REPOSCOPE_WATCH_POLL_MS=1500
+```
 
 Setup: [`docs/mcp_setup.md`](docs/mcp_setup.md)
 
@@ -216,30 +201,18 @@ LangGraph path for report-style analysis:
 
 `route → repo_parse → planner → retrieve → analyze → review → finalize`
 
-```bash
-cp .env.example .env
-# REPOSCOPE_LLM_API_KEY=...
-```
-
-```python
-from app.workflow import WorkflowInput, create_default_runner
-
-runner = create_default_runner(use_hash_embedder=True)
-result = runner.run(WorkflowInput(
-    question="Summarize the architecture",
-    repo_source="tests/fixtures/sample_repo",
-    intent_hint="summary",
-))
-print(result.report_markdown)
-```
-
-Prefer **FlowTracer / ArchitectureAnalyzer** when you need structured intelligence for agents; use the workflow when you want a narrative report with review loops.
+Prefer **FlowTracer / ArchitectureAnalyzer / KnowledgeGraph queries** when you need
+structured context for agents; use the workflow when you want a narrative report
+with review loops.
 
 ---
 
 ## Retrieval & evaluation
 
 - Hybrid RAG: dense + BM25, RRF default, optional cross-encoder rerank
+- Graph / chunks live as JSON under `data/artifacts/<repo_id>/` (not SQLite)
+- Keyword search is BM25 (pickle), not SQLite FTS5 — FTS5 fits CodeGraph-style
+  SQLite stores; migrating storage would be the reason to add it, not search alone
 - Config: `config/retrieval.yaml`
 - Eval harness: [`eval/README.md`](eval/README.md)
 
@@ -255,30 +228,32 @@ python -m eval.run_retrieval_eval --compare-modes --hash-embedder
 pytest -q
 ```
 
-112 tests, fixture-driven — includes fixtures for Spring-like and FastAPI-like login flows under `tests/fixtures/`.
+Fixture-driven coverage includes Spring-like and FastAPI-like login flows, plus
+inherit/resolution regression fixtures under `tests/fixtures/`.
 
 ---
 
 ## Mental model
 
 ```
-            RepoScope
-                |
-     Repository Intelligence Engine
-       /            |             \
-KnowledgeGraph  FlowTracer  ArchitectureAnalyzer
-   structure      behavior         design
+                 RepoScope
+                     |
+      Structure-aware Code Context Engine (MCP)
+            /              |              \
+   KnowledgeGraph     FlowTracer    ArchitectureAnalyzer
+     structure         behavior            design
+   import/call/inherit
 ```
 
-That is the intended core. Extend only when a real agent/product need appears — not by drifting into chat or auto-coding.
+Extend only when a real agent need appears — not by drifting into chat or auto-coding.
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — language grammars and flow-tracing
-fixtures for real-world frameworks are the highest-leverage contributions
-right now.
+See [CONTRIBUTING.md](CONTRIBUTING.md) — language grammars, symbol resolution
+fixtures, and flow-tracing cases for real frameworks are the highest-leverage
+contributions right now.
 
 ## License
 

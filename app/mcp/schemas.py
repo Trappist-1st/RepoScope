@@ -43,6 +43,9 @@ class MCPMeta(BaseModel):
     indexing_status: IndexingStatus = "cached"
     warnings: list[str] = Field(default_factory=list)
     audit_backend: str = "in_memory"
+    graph_update_mode: str | None = None
+    changed_files: list[str] = Field(default_factory=list)
+    sync_took_ms: int | None = None
 
 
 class ModuleSummary(BaseModel):
@@ -167,6 +170,9 @@ class ViewSourceResult(BaseModel):
     content: str = ""
     outline: list[DefinitionOut] = Field(default_factory=list)
     truncated: bool = False
+    # Continuation helpers when truncated (whole-file or oversized line range).
+    total_lines: int | None = None
+    next_start_line: int | None = None
     notes: list[str] = Field(default_factory=list)
 
 
@@ -208,3 +214,70 @@ class InitialContextResult(BaseModel):
     core_modules: list[BootstrapModuleOut] = Field(default_factory=list)
     core_files: list[BootstrapCoreFileOut] = Field(default_factory=list)
     remaining_modules: list[BootstrapModuleOut] = Field(default_factory=list)
+
+
+class ExploreSeedOut(BaseModel):
+    symbol_ref: str
+    score: float = 0.0
+    reason: str = "search"
+    citation: CitationOut | None = None
+    snippet: str = ""
+
+
+class BlastRadiusHit(BaseModel):
+    symbol_ref: str
+    relation: str  # caller | callee | extends | implements | child
+    hops: int = 1
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
+class CallPathStepOut(BaseModel):
+    order: int
+    symbol_ref: str
+    role: str | None = None
+    citation: CitationOut | None = None
+    note: str | None = None
+
+
+class CallPathOut(BaseModel):
+    steps: list[CallPathStepOut] = Field(default_factory=list)
+    score: float = 0.0
+    confidence: Confidence = "medium"
+    source: str = "graph"  # graph | flow_tracer
+
+
+class ContextExploreResult(BaseModel):
+    """Primary surgical context pack for coding agents (CodeGraph-style explore)."""
+
+    meta: MCPMeta
+    query: str
+    seeds: list[ExploreSeedOut] = Field(default_factory=list)
+    must_read: list[ExploreSeedOut] = Field(default_factory=list)
+    call_paths: list[CallPathOut] = Field(default_factory=list)
+    blast_radius: list[BlastRadiusHit] = Field(default_factory=list)
+    report_markdown: str = ""
+    notes: list[str] = Field(default_factory=list)
+    low_confidence: bool = False
+
+
+class ImpactHitOut(BaseModel):
+    symbol_ref: str
+    relation: str
+    hops: int
+    direction: Literal["affected", "depends_on"]
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
+class ImpactResult(BaseModel):
+    """Dedicated impact / blast-radius analysis for a symbol."""
+
+    meta: MCPMeta
+    query: dict[str, Any] = Field(default_factory=dict)
+    seeds: list[str] = Field(default_factory=list)
+    affected: list[ImpactHitOut] = Field(default_factory=list)
+    depends_on: list[ImpactHitOut] = Field(default_factory=list)
+    affected_files: list[str] = Field(default_factory=list)
+    depends_on_files: list[str] = Field(default_factory=list)
+    report_markdown: str = ""
+    notes: list[str] = Field(default_factory=list)
+    low_confidence: bool = False

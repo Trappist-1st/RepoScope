@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -9,6 +10,13 @@ class SymbolKind(str, Enum):
     METHOD = "method"
 
 
+class SuperTypeRef(BaseModel):
+    """Unresolved superclass / interface name extracted from AST (simple name)."""
+
+    name: str
+    relation: Literal["extends", "implements"] = "extends"
+
+
 class Definition(BaseModel):
     name: str
     kind: SymbolKind
@@ -16,6 +24,7 @@ class Definition(BaseModel):
     end_line: int
     language: str
     parent_name: str | None = None
+    bases: list[SuperTypeRef] = Field(default_factory=list)
 
 
 class Chunk(BaseModel):
@@ -50,11 +59,21 @@ class CallEdge(BaseModel):
     same_file: bool = True
 
 
+class InheritEdge(BaseModel):
+    """child symbol_ref inherits from / implements parent symbol_ref."""
+
+    child: str
+    parent: str
+    relation: Literal["extends", "implements"] = "extends"
+    same_file: bool = False
+
+
 class DependencyGraph(BaseModel):
     repo_id: str
     commit_hash: str | None = None
     file_edges: list[FileDependencyEdge] = Field(default_factory=list)
     call_edges: list[CallEdge] = Field(default_factory=list)
+    inherit_edges: list[InheritEdge] = Field(default_factory=list)
 
 
 class ParseResult(BaseModel):
@@ -66,6 +85,9 @@ class ParseResult(BaseModel):
     parse_ok: bool
 
 
+GraphUpdateMode = Literal["full", "merge", "cached"]
+
+
 class IngestResult(BaseModel):
     repo_id: str
     local_path: str
@@ -75,3 +97,5 @@ class IngestResult(BaseModel):
     unchanged_count: int
     parse_results: list[ParseResult]
     graph: DependencyGraph
+    graph_update_mode: GraphUpdateMode = "full"
+    sync_took_ms: int = 0

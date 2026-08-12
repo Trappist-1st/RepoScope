@@ -17,8 +17,10 @@ from app.mcp.service import RepoScopeFacade
 mcp = FastMCP(
     "reposcope",
     instructions=(
-        "RepoScope exposes repository intelligence tools with citation-backed evidence. "
-        "Always inspect meta.warnings — especially audit_backend in_memory notices."
+        "RepoScope is a structure-aware code context engine. "
+        "Prefer context_explore for how-it-works / edit-prep questions — "
+        "one call returns seeds, must-read source, call paths, and blast radius. "
+        "Always inspect meta.warnings and meta.graph_update_mode."
     ),
 )
 
@@ -59,6 +61,32 @@ def query_dependencies(
     result = get_facade().query_dependencies(
         repo_url=repo_url,
         symbol_name=symbol_name,
+        direction=direction,
+        limit=limit,
+        force_reindex=force_reindex,
+    )
+    return result.model_dump()
+
+
+@mcp.tool()
+def analyze_impact(
+    repo_url: str,
+    symbol_name: str,
+    depth: int = 2,
+    direction: Literal["affected", "depends_on", "both"] = "both",
+    limit: int = 50,
+    force_reindex: bool = False,
+) -> dict:
+    """Impact analysis before editing: who is affected, and what the symbol depends on.
+
+    - affected: transitive callers + subtypes (blast radius of a change)
+    - depends_on: callees + super-types
+    Prefer file::symbol when the short name is ambiguous.
+    """
+    result = get_facade().analyze_impact(
+        repo_url=repo_url,
+        symbol_name=symbol_name,
+        depth=depth,
         direction=direction,
         limit=limit,
         force_reindex=force_reindex,
@@ -167,6 +195,8 @@ def view_source(
     symbol/line range is given, returns the file capped at ~400 lines plus an
     `outline` of top-level definitions (name/kind/line range) so you can pick
     a symbol_name for a follow-up call instead of reading the whole file.
+    If truncated, check `next_start_line` / `total_lines` and re-call with
+    start_line=next_start_line to continue reading.
     """
     result = get_facade().view_source(
         repo_url=repo_url,
@@ -199,6 +229,33 @@ def get_initial_context(
         repo_url=repo_url,
         top_k_modules=top_k_modules,
         top_k_core_files=top_k_core_files,
+        force_reindex=force_reindex,
+    )
+    return result.model_dump()
+
+
+@mcp.tool()
+def context_explore(
+    repo_url: str,
+    query: str,
+    top_k: int = 8,
+    blast_depth: int = 2,
+    include_flow: bool | None = None,
+    force_reindex: bool = False,
+) -> dict:
+    """Primary tool: one call returns surgical coding context.
+
+    Returns seed symbols with snippets (must_read), call paths (FlowTracer when
+    the question looks like a flow), and blast radius (callers/callees/inherit).
+    Prefer this over chaining search_code + view_source + query_dependencies for
+    \"how does X work\" / edit-prep questions. Does not modify code.
+    """
+    result = get_facade().context_explore(
+        repo_url=repo_url,
+        query=query,
+        top_k=top_k,
+        blast_depth=blast_depth,
+        include_flow=include_flow,
         force_reindex=force_reindex,
     )
     return result.model_dump()

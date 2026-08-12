@@ -59,7 +59,8 @@ def test_python_projection_nodes_and_parents():
 
     assert kg.schema_version == "1.0"
     assert kg.source.definitions is True
-    assert kg.source.inherit_supported is False
+    assert kg.source.inherit_supported is True
+    # sample_repo has no extends/implements; count may be zero
     assert kg.stats.edge_counts.get("inherit", 0) == 0
 
     file_a = get_node(kg, "file:py_pkg/a.py")
@@ -194,5 +195,5 @@ def test_ingestion_writes_knowledge_graph(tmp_path: Path):
 
     kg = pipe.load_knowledge_graph(result.repo_id)
     assert kg.repo_id == result.repo_id
-    assert kg.stats.edge_counts.get("inherit", 0) == 0
+    assert kg.source.inherit_supported is True
     assert kg.stats.node_counts.get("file", 0) >= 1

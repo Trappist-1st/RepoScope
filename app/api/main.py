@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from app.api.routes_analyze import router as analyze_router
 from app.api.routes_architecture import router as architecture_router
+from app.api.routes_tools import router as tools_router
 from app.api.routes_trace import router as trace_router
 from app.mcp.service import RepoScopeFacade
 
@@ -22,6 +23,7 @@ def create_app() -> FastAPI:
     app.include_router(analyze_router)
     app.include_router(trace_router)
     app.include_router(architecture_router)
+    app.include_router(tools_router)
     return app
 
 

@@ -6,6 +6,7 @@ dist/
 build/
 .venv/
 venv/
+node_modules/
 .env
 .pytest_cache/
 .mypy_cache/

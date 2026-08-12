@@ -27,19 +27,22 @@ def test_full_ingest_then_incremental(tmp_path: Path):
     assert len(first.changed_files) >= 3  # py/js/java sources
     assert first.unchanged_count == 0
     assert first.graph.file_edges or first.graph.call_edges
+    assert first.graph_update_mode == "full"
+    assert first.sync_took_ms >= 0
 
     chunks, graph = pipeline.load_artifacts(first.repo_id)
     assert chunks
     assert graph.repo_id == first.repo_id
 
-    # Second run with no changes → everything unchanged
+    # Second run with no changes → everything unchanged / cached graph
     second = pipeline.run(str(repo_dir))
     assert second.changed_files == []
     assert second.deleted_files == []
     assert second.unchanged_count == len(first.changed_files)
     assert second.parse_results == []
+    assert second.graph_update_mode == "cached"
 
-    # Mutate one file → only that file reprocessed
+    # Mutate one file → only that file reprocessed; prefer merge when possible
     target = repo_dir / "py_pkg" / "a.py"
     target.write_text(target.read_text(encoding="utf-8") + "\n# touch\n", encoding="utf-8")
 
@@ -48,6 +51,11 @@ def test_full_ingest_then_incremental(tmp_path: Path):
     assert len(third.parse_results) == 1
     assert third.parse_results[0].file_path == "py_pkg/a.py"
     assert third.parse_results[0].parse_ok is True
+    assert third.graph_update_mode in {"merge", "full"}
+    # Import edge from b→a should still exist after sync
+    assert any(
+        e.source == "py_pkg/b.py" and e.target == "py_pkg/a.py" for e in third.graph.file_edges
+    ), third.graph.file_edges
 
     hashes = pipeline.files_repo.get_file_hashes(third.repo_id)
     assert "py_pkg/a.py" in hashes

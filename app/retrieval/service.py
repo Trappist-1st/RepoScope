@@ -26,6 +26,7 @@ from app.retrieval.vector_store import (
     collection_name,
     create_vector_store,
 )
+from app.retrieval.source_boost import source_quality_multiplier
 
 
 class RetrievalService:
@@ -213,6 +214,19 @@ class RetrievalService:
                 )
             )
 
+        # Demote docs/markdown, boost source symbols before rerank/cut.
+        for hit in fused_hits:
+            mult = source_quality_multiplier(
+                file_path=hit.citation.file_path if hit.citation else None,
+                language=hit.language,
+                kind=hit.kind,
+            )
+            if mult != 1.0:
+                hit.score = float(hit.score) * mult
+                hit.scores = {**(hit.scores or {}), "source_boost": mult}
+        fused_hits.sort(key=lambda h: h.score, reverse=True)
+        diagnostics["source_boost_applied"] = True
+
         # Cap candidates entering rerank
         fused_hits = fused_hits[:rerank_top_n]
         reranker = self.reranker or create_reranker(self.config.rerank, force_skip=skip_rerank)
@@ -249,15 +263,28 @@ class RetrievalService:
 
         picked: list[Chunk] = []
         seen_files: set[str] = set()
-        # Pass 1: one chunk per file
-        for chunk in chunks:
-            if chunk.file_path in seen_files:
-                continue
-            seen_files.add(chunk.file_path)
-            picked.append(chunk)
-            if len(picked) >= limit:
-                break
-        # Pass 2: fill remaining
+
+        def _pick(prefer_source: bool) -> None:
+            for chunk in chunks:
+                if len(picked) >= limit:
+                    return
+                if chunk.file_path in seen_files:
+                    continue
+                if prefer_source and source_quality_multiplier(
+                    file_path=chunk.file_path,
+                    language=chunk.language,
+                    kind=chunk.kind,
+                ) < 1.0:
+                    continue
+                if not prefer_source and chunk.file_path in seen_files:
+                    continue
+                seen_files.add(chunk.file_path)
+                picked.append(chunk)
+
+        # Pass 1: prefer source files; Pass 2: any remaining distinct files
+        _pick(prefer_source=True)
+        _pick(prefer_source=False)
+        # Pass 3: fill remaining chunks
         if len(picked) < limit:
             have = {c.chunk_id for c in picked}
             for chunk in chunks:
@@ -269,17 +296,23 @@ class RetrievalService:
 
         hits: list[RetrievalHit] = []
         for i, chunk in enumerate(picked):
+            base = max(0.01, 0.2 - i * 0.01)
+            mult = source_quality_multiplier(
+                file_path=chunk.file_path,
+                language=chunk.language,
+                kind=chunk.kind,
+            )
             hits.append(
                 RetrievalHit(
                     chunk_id=chunk.chunk_id,
                     content=chunk.content,
                     citation=Citation.from_chunk(chunk),
-                    score=max(0.01, 0.2 - i * 0.01),
+                    score=base * mult,
                     source="explore",
                     symbol_name=chunk.symbol_name,
                     kind=chunk.kind,
                     language=chunk.language,
-                    scores={"explore": 1.0},
+                    scores={"explore": 1.0, "source_boost": mult},
                     expansion_reason="fallback:explore_chunks",
                 )
             )

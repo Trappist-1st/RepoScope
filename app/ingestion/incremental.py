@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from app.models.schemas import (
     Definition,
     DependencyGraph,
     FileIndexRecord,
+    GraphUpdateMode,
     IngestResult,
     ParseResult,
 )
@@ -29,9 +31,42 @@ from app.parsing.ast_parser import AstParser
 from app.parsing.chunker import Chunker
 from app.parsing.languages import AST_LANGUAGES, SUPPORTED_EXTENSIONS, detect_language
 
+# Prefer merge when the re-origin set stays small relative to the repo.
+_MERGE_MAX_ORIGIN_FILES = 32
+_MERGE_MAX_ORIGIN_RATIO = 0.35
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _affected_origin_paths(
+    changed: list[str],
+    deleted: list[str],
+    existing: DependencyGraph,
+) -> set[str]:
+    """
+    Files whose outgoing edges must be rebuilt after a change.
+
+    Includes changed files plus prior callers/importers that linked into them,
+    so merge_update can drop stale edges and re-attach without a full rebuild.
+    """
+    drop = set(changed) | set(deleted)
+    affected = set(changed)
+    for e in existing.file_edges:
+        if e.target in drop or e.source in drop:
+            affected.add(e.source)
+    for e in existing.call_edges:
+        caller_f = e.caller.split("::", 1)[0]
+        callee_f = e.callee.split("::", 1)[0]
+        if callee_f in drop or caller_f in drop:
+            affected.add(caller_f)
+    for e in existing.inherit_edges:
+        child_f = e.child.split("::", 1)[0]
+        parent_f = e.parent.split("::", 1)[0]
+        if parent_f in drop or child_f in drop:
+            affected.add(child_f)
+    return affected
 
 
 def iter_source_files(root: Path, exclude_dirs: frozenset[str] | None = None) -> list[Path]:
@@ -75,6 +110,7 @@ class IngestionPipeline:
         self.graph_builder = graph_builder or DependencyGraphBuilder()
 
     def run(self, source: str, force_full: bool = False) -> IngestResult:
+        t0 = time.perf_counter()
         checkout = ensure_repo(source, self.workspace_root)
         self.repos_repo.upsert_repo(
             checkout.repo_id,
@@ -106,7 +142,7 @@ class IngestionPipeline:
         if deleted:
             self.files_repo.delete_files(checkout.repo_id, deleted)
 
-        prev_chunks, _prev_graph = self._try_load_artifacts(checkout.repo_id)
+        prev_chunks, prev_graph = self._try_load_artifacts(checkout.repo_id)
         cached_defs: dict[str, list[Definition]] = getattr(self, "_cached_definitions", {})
 
         unchanged_chunk_map: dict[str, list[Chunk]] = {}
@@ -158,27 +194,19 @@ class IngestionPipeline:
                 )
             )
 
-        # Strategy A: rebuild graph from all current files when anything changed,
-        # or on first run / force_full.
-        if changed or deleted or force_full or not previous:
-            graph = self.graph_builder.build(
-                repo_id=checkout.repo_id,
-                commit_hash=checkout.commit_hash or None,
-                files=file_contents,
-                definitions_by_file=definitions_by_file,
-            )
-        else:
-            _, graph = self._try_load_artifacts(checkout.repo_id)
-            if graph.repo_id != checkout.repo_id:
-                graph = self.graph_builder.build(
-                    repo_id=checkout.repo_id,
-                    commit_hash=checkout.commit_hash or None,
-                    files=file_contents,
-                    definitions_by_file=definitions_by_file,
-                )
+        graph, graph_update_mode = self._update_graph(
+            repo_id=checkout.repo_id,
+            commit_hash=checkout.commit_hash or None,
+            file_contents=file_contents,
+            definitions_by_file=definitions_by_file,
+            changed=changed,
+            deleted=deleted,
+            force_full=force_full,
+            previous_hashes=previous,
+            prev_graph=prev_graph,
+        )
 
         self._write_artifacts(checkout.repo_id, all_chunks, graph, definitions_by_file)
-        # Cached graph path: ensure knowledge_graph.json exists (backfill).
         self._ensure_knowledge_graph(checkout.repo_id, graph, definitions_by_file)
 
         return IngestResult(
@@ -190,7 +218,71 @@ class IngestionPipeline:
             unchanged_count=unchanged_count,
             parse_results=parse_results,
             graph=graph,
+            graph_update_mode=graph_update_mode,
+            sync_took_ms=int((time.perf_counter() - t0) * 1000),
         )
+
+    def _update_graph(
+        self,
+        *,
+        repo_id: str,
+        commit_hash: str | None,
+        file_contents: dict[str, str],
+        definitions_by_file: dict[str, list[Definition]],
+        changed: list[str],
+        deleted: list[str],
+        force_full: bool,
+        previous_hashes: dict[str, str],
+        prev_graph: DependencyGraph,
+    ) -> tuple[DependencyGraph, GraphUpdateMode]:
+        def _full() -> DependencyGraph:
+            return self.graph_builder.build(
+                repo_id=repo_id,
+                commit_hash=commit_hash,
+                files=file_contents,
+                definitions_by_file=definitions_by_file,
+            )
+
+        if force_full or not previous_hashes:
+            return _full(), "full"
+
+        if not changed and not deleted:
+            if prev_graph.repo_id == repo_id and (
+                prev_graph.file_edges or prev_graph.call_edges or prev_graph.inherit_edges
+            ):
+                return prev_graph, "cached"
+            return _full(), "full"
+
+        has_edges = bool(
+            prev_graph.file_edges or prev_graph.call_edges or prev_graph.inherit_edges
+        )
+        if prev_graph.repo_id == repo_id and has_edges:
+            origins = _affected_origin_paths(changed, deleted, prev_graph)
+            origins &= set(file_contents.keys())
+            n_files = max(1, len(file_contents))
+            if (
+                origins
+                and len(origins) <= _MERGE_MAX_ORIGIN_FILES
+                and (len(origins) / n_files) <= _MERGE_MAX_ORIGIN_RATIO
+            ):
+                partial = self.graph_builder.build(
+                    repo_id=repo_id,
+                    commit_hash=commit_hash,
+                    files=file_contents,
+                    definitions_by_file=definitions_by_file,
+                    origin_paths=origins,
+                )
+                merged = self.graph_builder.merge_update(
+                    prev_graph,
+                    changed_paths=changed,
+                    deleted_paths=deleted,
+                    partial_graph=partial,
+                    rebuild_origins=origins,
+                )
+                return merged, "merge"
+
+        return _full(), "full"
+
 
     def load_artifacts(self, repo_id: str) -> tuple[list[Chunk], DependencyGraph]:
         chunks, graph = self._try_load_artifacts(repo_id)
