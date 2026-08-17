@@ -36,31 +36,9 @@ Most MCP code-graph tools sell the same story: *index the repo, save tokens, hel
 
 ---
 
-## Honest comparison
-
-Feature claims below are from each project’s public README / BENCHMARKS as of 2026-08, not a head-to-head we ran. We do **not** claim to beat them on index speed, language count, or kernel-scale ingest. See [BENCHMARKS.md](BENCHMARKS.md) for what we *did* measure.
-
-| | RepoScope | [codescope-mcp](https://github.com/abdulmunimjemal/codescope-mcp) | [code-graph-mcp](https://github.com/sdsrs/code-graph) | [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) |
-|---|---|---|---|---|
-| Primary bet | Flow + blast radius + architecture, cited | Lean, fast, accurate **callers** | Call graph + semantic search + HTTP routes | Native binary, huge language coverage, Cypher |
-| Flow / business path with roles | **Yes** | No (callers/callees/impact) | Partial (route tracing) | Call-path BFS |
-| Architecture (modules / coupling / patterns) | **Yes** (heuristic) | No | Limited | Community detection / wiki |
-| Hybrid BM25 + dense retrieval | **Yes** | FTS-oriented | Semantic search | Structural queries |
-| Citation / anti-hallucination review | **Yes** (rule-based) | Token-compact answers | — | — |
-| Languages today | Python, JS, TS, Java | ~21 | ~16 | 100+ / kernel-scale demos |
-| Install | Python 3.11+ package | `npx` / CLI | npm / Rust | Single native binary |
-| Index speed / kernel-scale | **Behind** (CPython + JSON artifacts) | Strong published numbers | Strong | **Linux kernel in minutes** (their claim) |
-| Zero-install MCP | **Not yet** | Yes | Yes | Yes |
-
-**Pick RepoScope** when the agent’s question is “how does this feature run / what does this edit hit / how is this repo shaped?”, and you want the answer checkable.
-
-**Pick the others** when you need 20+ languages, millisecond native queries, or a drop-in `npx` binary. We are not competing on those axes yet.
-
----
-
 ## 30-second quickstart
 
-Python 3.11+, no Docker required for the MCP path. There is **no** `npx reposcope` wrapper yet — that is a real gap vs codescope-mcp.
+Python 3.11+, no Docker required for the MCP path.
 
 ```bash
 git clone https://github.com/Trappist-1st/RepoScope.git
@@ -197,7 +175,7 @@ Repository
     → Git checkout + file SHA-256
     → tree-sitter AST (defs / chunks)
     → resolve imports, calls, inherit     ← parse / index
-    → JSON artifacts (graph + chunks)     ← store
+    → JSON artifacts (graph + chunks)     ← store  (optional SQLite)
     → MCP / HTTP tools                    ← context_explore, impact, flow, …
 ```
 
