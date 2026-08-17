@@ -25,11 +25,17 @@ Confidence = Literal["high", "medium", "low"]
 
 
 class EvidenceSpan(BaseModel):
-    """Reserved for Flow Trace; Iteration 1 adapters leave this empty."""
+    """Source location backing an edge or a flow step."""
 
     file_path: str
     start_line: int
     end_line: int | None = None
+
+    @property
+    def citation(self) -> str:
+        if self.end_line is not None and self.end_line != self.start_line:
+            return f"{self.file_path}:{self.start_line}-{self.end_line}"
+        return f"{self.file_path}:{self.start_line}"
 
 
 class KnowledgeNode(BaseModel):
@@ -50,9 +56,21 @@ class KnowledgeEdge(BaseModel):
     source_id: str
     target_id: str
     edge_type: EdgeType
+    # Bucketed label consumed by FlowTracer beam search; keep the literal type.
     confidence: Confidence = "high"
+    # Raw cascade score. None on edges produced by the legacy resolver.
+    confidence_score: float | None = None
+    resolution_strategy: str | None = None
     evidence: list[EvidenceSpan] = Field(default_factory=list)
     meta: dict[str, Any] = Field(default_factory=dict)
+
+
+def bucket_confidence(score: float) -> Confidence:
+    if score >= 0.85:
+        return "high"
+    if score >= 0.55:
+        return "medium"
+    return "low"
 
 
 class KnowledgeGraphStats(BaseModel):
@@ -65,6 +83,9 @@ class KnowledgeGraphSource(BaseModel):
     dependency_graph: bool = True
     definitions: bool = False
     inherit_supported: bool = False
+    # Self-describing artifact: lets the pipeline detect a mode switch and
+    # force a rebuild instead of silently mixing cascade and legacy edges.
+    advanced: bool = False
 
 
 class KnowledgeGraph(BaseModel):

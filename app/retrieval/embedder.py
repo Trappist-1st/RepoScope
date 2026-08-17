@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Protocol, runtime_checkable
 
 import numpy as np
 
 from app.retrieval.config import EmbeddingConfig
+
+
+def _stable_hash(token: str) -> int:
+    return int.from_bytes(
+        hashlib.blake2b(token.encode("utf-8"), digest_size=8).digest(), "big"
+    )
 
 
 def l2_normalize(matrix: np.ndarray) -> np.ndarray:
@@ -24,7 +31,12 @@ class Embedder(Protocol):
 
 
 class HashEmbedder:
-    """Deterministic bag-of-tokens hasher for tests / CI (no model download)."""
+    """Deterministic bag-of-tokens hasher for tests / CI (no model download).
+
+    Uses blake2b rather than the builtin ``hash``: CPython salts string hashing
+    per process, which made every vector — and therefore every Recall@k in the
+    benchmark harness — differ from run to run.
+    """
 
     def __init__(self, dim: int = 384) -> None:
         self._dim = dim
@@ -37,8 +49,9 @@ class HashEmbedder:
         vectors = np.zeros((len(texts), self._dim), dtype=np.float32)
         for i, text in enumerate(texts):
             for token in _tokenize(text):
-                idx = hash(token) % self._dim
-                sign = 1.0 if (hash(token) // self._dim) % 2 == 0 else -1.0
+                h = _stable_hash(token)
+                idx = h % self._dim
+                sign = 1.0 if (h // self._dim) % 2 == 0 else -1.0
                 vectors[i, idx] += sign
         return l2_normalize(vectors)
 

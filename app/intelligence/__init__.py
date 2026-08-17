@@ -25,6 +25,7 @@ from app.intelligence.models import (
     KnowledgeGraphStats,
     KnowledgeNode,
     NodeKind,
+    bucket_confidence,
 )
 from app.intelligence.query import (
     children_of,
@@ -44,6 +45,7 @@ __all__ = [
     "KnowledgeGraphStats",
     "KnowledgeNode",
     "NodeKind",
+    "bucket_confidence",
     "build_knowledge_graph",
     "children_of",
     "edge_id",

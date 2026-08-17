@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,6 +36,15 @@ class Settings(BaseSettings):
 
     # Context engineering (phase 4)
     context_config_path: Path | None = None
+
+    # Knowledge graph construction and storage.
+    # The two switches are orthogonal on purpose: flipping one back must not
+    # change what the other one does, so a regression can be bisected.
+    use_advanced_kg: bool = False
+    kg_storage: Literal["json", "sqlite"] = "json"
+    # Edges below this score are dropped from context_explore payloads when
+    # use_advanced_kg is on. Legacy edges score 1.0 and are never pruned.
+    kg_min_confidence: float = 0.5
 
     # Observability (phase 5)
     redis_url: str | None = None  # e.g. redis://localhost:6379/0

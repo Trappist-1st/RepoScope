@@ -8,6 +8,7 @@ from pathlib import Path
 from app.config import settings
 from app.db.postgres import FilesRepository, ReposRepository
 from app.graph.builder import DependencyGraphBuilder
+from app.ingestion.ast_hash import ast_structure_hash, split_structural_changes
 from app.ingestion.git_ops import ensure_repo
 from app.ingestion.hashing import content_hash
 from app.intelligence.adapter import build_knowledge_graph
@@ -93,11 +94,17 @@ class IngestionPipeline:
         chunker: Chunker | None = None,
         graph_builder: DependencyGraphBuilder | None = None,
         artifact_dir: Path | None = None,
+        use_advanced_kg: bool | None = None,
+        kg_storage: str | None = None,
     ) -> None:
         from app.db.postgres import create_repositories
 
         self.workspace_root = Path(workspace_root or settings.workspace_root)
         self.artifact_dir = Path(artifact_dir or settings.artifact_dir)
+        self.use_advanced_kg = (
+            settings.use_advanced_kg if use_advanced_kg is None else use_advanced_kg
+        )
+        self.kg_storage = kg_storage or settings.kg_storage
         if files_repo is None or repos_repo is None:
             default_files, default_repos = create_repositories(settings.database_url)
             self.files_repo = files_repo or default_files
@@ -149,6 +156,17 @@ class IngestionPipeline:
         for ch in prev_chunks:
             unchanged_chunk_map.setdefault(ch.file_path, []).append(ch)
 
+        # Structure hashing is part of the advanced path only: with the flag
+        # off the pipeline must behave exactly as it did before, down to the
+        # graph_update_mode it reports.
+        track_structure = self.use_advanced_kg
+        prev_structure = (
+            self._load_structure_hashes(checkout.repo_id)
+            if track_structure and not force_full
+            else {}
+        )
+        structure_hashes: dict[str, str] = {}
+
         definitions_by_file: dict[str, list[Definition]] = {}
         all_chunks: list[Chunk] = []
         parse_results: list[ParseResult] = []
@@ -160,6 +178,10 @@ class IngestionPipeline:
             if rel not in changed and rel in cached_defs:
                 definitions_by_file[rel] = cached_defs[rel]
                 all_chunks.extend(unchanged_chunk_map.get(rel, []))
+                if track_structure:
+                    structure_hashes[rel] = prev_structure.get(rel) or self._structure_hash(
+                        rel, content, cached_defs[rel]
+                    )
                 continue
 
             definitions: list[Definition] = []
@@ -175,6 +197,8 @@ class IngestionPipeline:
             chunks = self.chunker.chunk_file(rel, content, definitions, language)
             definitions_by_file[rel] = definitions
             all_chunks.extend(chunks)
+            if track_structure:
+                structure_hashes[rel] = self._structure_hash(rel, content, definitions)
             parse_results.append(
                 ParseResult(
                     file_path=rel,
@@ -194,19 +218,42 @@ class IngestionPipeline:
                 )
             )
 
+        # Bytes changing is not the same as structure changing. Only files whose
+        # AST fingerprint moved can invalidate an edge, so comment- or
+        # format-only edits skip the graph work entirely.
+        if track_structure:
+            structural_changed, cosmetic_changed = split_structural_changes(
+                changed, prev_structure, structure_hashes
+            )
+        else:
+            structural_changed, cosmetic_changed = changed, []
+
         graph, graph_update_mode = self._update_graph(
             repo_id=checkout.repo_id,
             commit_hash=checkout.commit_hash or None,
             file_contents=file_contents,
             definitions_by_file=definitions_by_file,
-            changed=changed,
+            changed=structural_changed,
             deleted=deleted,
             force_full=force_full,
             previous_hashes=previous,
             prev_graph=prev_graph,
         )
+        if (
+            graph_update_mode == "cached"
+            and cosmetic_changed
+            and not structural_changed
+            and not deleted
+        ):
+            graph_update_mode = "structure_cached"
 
-        self._write_artifacts(checkout.repo_id, all_chunks, graph, definitions_by_file)
+        if track_structure:
+            self._write_structure_hashes(checkout.repo_id, structure_hashes)
+        # Every MCP query calls run() to make sure the index is current, so the
+        # no-change path is the hot one. Rewriting identical artifacts there is
+        # pure I/O -- and with the sqlite backend it dominated query latency.
+        if graph_update_mode != "cached" or not self._artifacts_present(checkout.repo_id):
+            self._write_artifacts(checkout.repo_id, all_chunks, graph, definitions_by_file)
         self._ensure_knowledge_graph(checkout.repo_id, graph, definitions_by_file)
 
         return IngestResult(
@@ -241,6 +288,7 @@ class IngestionPipeline:
                 commit_hash=commit_hash,
                 files=file_contents,
                 definitions_by_file=definitions_by_file,
+                advanced=self.use_advanced_kg,
             )
 
         if force_full or not previous_hashes:
@@ -271,6 +319,7 @@ class IngestionPipeline:
                     files=file_contents,
                     definitions_by_file=definitions_by_file,
                     origin_paths=origins,
+                    advanced=self.use_advanced_kg,
                 )
                 merged = self.graph_builder.merge_update(
                     prev_graph,
@@ -290,14 +339,29 @@ class IngestionPipeline:
 
     def load_knowledge_graph(self, repo_id: str) -> KnowledgeGraph:
         """Load Code Intelligence Graph artifact (raises if missing)."""
-        return load_knowledge_graph(repo_id, artifact_dir=self.artifact_dir)
+        return load_knowledge_graph(
+            repo_id, artifact_dir=self.artifact_dir, storage=self.kg_storage
+        )
 
     def try_load_knowledge_graph(self, repo_id: str) -> KnowledgeGraph | None:
-        return try_load_knowledge_graph(repo_id, artifact_dir=self.artifact_dir)
+        return try_load_knowledge_graph(
+            repo_id, artifact_dir=self.artifact_dir, storage=self.kg_storage
+        )
 
     def _artifact_paths(self, repo_id: str) -> tuple[Path, Path, Path]:
         base = self.artifact_dir / repo_id
         return base / "chunks.json", base / "graph.json", base / "definitions.json"
+
+    def _artifacts_present(self, repo_id: str) -> bool:
+        chunks_path, graph_path, defs_path = self._artifact_paths(repo_id)
+        if self.kg_storage == "sqlite":
+            from app.storage.sqlite_store import db_path
+
+            if not db_path(repo_id, self.artifact_dir).exists():
+                return False
+        elif not chunks_path.exists():
+            return False
+        return graph_path.exists() and defs_path.exists()
 
     def _write_artifacts(
         self,
@@ -309,10 +373,15 @@ class IngestionPipeline:
         base = self.artifact_dir / repo_id
         base.mkdir(parents=True, exist_ok=True)
         chunks_path, graph_path, defs_path = self._artifact_paths(repo_id)
-        chunks_path.write_text(
-            json.dumps([c.model_dump() for c in chunks], ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        if self.kg_storage == "sqlite":
+            from app.storage.sqlite_store import save_chunks
+
+            save_chunks(repo_id, chunks, artifact_dir=self.artifact_dir)
+        else:
+            chunks_path.write_text(
+                json.dumps([c.model_dump() for c in chunks], ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
         graph_path.write_text(
             json.dumps(graph.model_dump(), ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -334,8 +403,12 @@ class IngestionPipeline:
     ) -> None:
         """Best-effort KG artifact; never fails the ingestion pipeline."""
         try:
-            kg = build_knowledge_graph(graph, definitions_by_file)
-            save_knowledge_graph(kg, artifact_dir=self.artifact_dir)
+            kg = build_knowledge_graph(
+                graph, definitions_by_file, advanced=self.use_advanced_kg
+            )
+            save_knowledge_graph(
+                kg, artifact_dir=self.artifact_dir, storage=self.kg_storage
+            )
         except Exception:
             # Intelligence layer must not break ingest.
             pass
@@ -346,17 +419,24 @@ class IngestionPipeline:
         graph: DependencyGraph,
         definitions_by_file: dict[str, list[Definition]],
     ) -> None:
-        """Rebuild KG when missing (e.g. artifacts from pre-intelligence runs)."""
-        if knowledge_graph_path(repo_id, self.artifact_dir).exists():
+        """Rebuild the KG when missing, or when the advanced flag was flipped.
+
+        A stale artifact from the other mode would silently mix cascade and
+        legacy edges, so a mode switch forces a rebuild rather than a reuse.
+        """
+        target = knowledge_graph_path(repo_id, self.artifact_dir, storage=self.kg_storage)
+        if not target.exists():
+            self._write_knowledge_graph(repo_id, graph, definitions_by_file)
             return
-        self._write_knowledge_graph(repo_id, graph, definitions_by_file)
+        existing = try_load_knowledge_graph(
+            repo_id, artifact_dir=self.artifact_dir, storage=self.kg_storage
+        )
+        if existing is None or existing.source.advanced != self.use_advanced_kg:
+            self._write_knowledge_graph(repo_id, graph, definitions_by_file)
 
     def _try_load_artifacts(self, repo_id: str) -> tuple[list[Chunk], DependencyGraph]:
         chunks_path, graph_path, defs_path = self._artifact_paths(repo_id)
-        chunks: list[Chunk] = []
-        if chunks_path.exists():
-            raw = json.loads(chunks_path.read_text(encoding="utf-8"))
-            chunks = [Chunk.model_validate(item) for item in raw]
+        chunks = self._load_chunks(repo_id, chunks_path)
 
         if graph_path.exists():
             graph = DependencyGraph.model_validate(
@@ -374,3 +454,59 @@ class IngestionPipeline:
         else:
             self._cached_definitions = {}
         return chunks, graph
+
+    def _structure_hash(
+        self, rel: str, content: str, definitions: list[Definition]
+    ) -> str:
+        try:
+            calls, imports = self.graph_builder.structural_facts(rel, content, definitions)
+        except Exception:
+            # A parse failure must not poison the hash into looking stable.
+            return content_hash(content.encode("utf-8", errors="replace"))
+        return ast_structure_hash(definitions, calls, imports)
+
+    def _structure_hash_path(self, repo_id: str) -> Path:
+        return self.artifact_dir / repo_id / "structure_hashes.json"
+
+    def _load_structure_hashes(self, repo_id: str) -> dict[str, str]:
+        path = self._structure_hash_path(repo_id)
+        if not path.exists():
+            return {}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            return {}
+
+    def _write_structure_hashes(self, repo_id: str, hashes: dict[str, str]) -> None:
+        path = self._structure_hash_path(repo_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(hashes, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+        )
+
+    def _load_chunks(self, repo_id: str, chunks_path: Path) -> list[Chunk]:
+        """Read chunks from whichever backend actually has them.
+
+        Accepting both formats regardless of the configured backend is what
+        makes flipping ``kg_storage`` free of a forced reindex.
+        """
+        from app.storage.sqlite_store import db_path
+
+        if self.kg_storage == "sqlite" and db_path(repo_id, self.artifact_dir).exists():
+            from app.storage.sqlite_store import load_chunks
+
+            try:
+                return load_chunks(repo_id, artifact_dir=self.artifact_dir)
+            except FileNotFoundError:
+                pass
+        if chunks_path.exists():
+            raw = json.loads(chunks_path.read_text(encoding="utf-8"))
+            return [Chunk.model_validate(item) for item in raw]
+        if db_path(repo_id, self.artifact_dir).exists():
+            from app.storage.sqlite_store import load_chunks
+
+            try:
+                return load_chunks(repo_id, artifact_dir=self.artifact_dir)
+            except FileNotFoundError:
+                return []
+        return []

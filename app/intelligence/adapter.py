@@ -10,12 +10,14 @@ from app.intelligence.ids import (
 )
 from app.intelligence.models import (
     EdgeType,
+    EvidenceSpan,
     KnowledgeEdge,
     KnowledgeGraph,
     KnowledgeGraphSource,
     KnowledgeGraphStats,
     KnowledgeNode,
     NodeKind,
+    bucket_confidence,
 )
 from app.models.schemas import Definition, DependencyGraph, SymbolKind
 from app.parsing.languages import detect_language
@@ -24,6 +26,8 @@ from app.parsing.languages import detect_language
 def build_knowledge_graph(
     dependency_graph: DependencyGraph,
     definitions_by_file: dict[str, list[Definition]] | None = None,
+    *,
+    advanced: bool = False,
 ) -> KnowledgeGraph:
     """
     Projection of DependencyGraph into KnowledgeGraph.
@@ -31,6 +35,11 @@ def build_knowledge_graph(
     - Nodes: file / class / function / method
     - Edges: import / call / inherit (extends|implements in edge.meta.relation)
     - Structure (file→class→method) via parent_id, not extra edge types
+
+    With ``advanced`` the cascade's numeric score is carried through as
+    ``confidence_score`` and bucketed into the literal ``confidence`` that
+    FlowTracer's beam search consumes, and the originating line becomes an
+    :class:`EvidenceSpan` so the edge itself is citable.
     """
     defs = definitions_by_file or {}
     has_definitions = bool(defs)
@@ -79,6 +88,9 @@ def build_knowledge_graph(
             target_id=tgt,
             edge_type=EdgeType.IMPORT,
             confidence="high",
+            confidence_score=1.0 if advanced else None,
+            resolution_strategy="import_map" if advanced else None,
+            evidence=_evidence(e.source, e.import_line) if advanced else [],
             meta={"from": "file_dependency_edge"},
         )
 
@@ -93,7 +105,16 @@ def build_knowledge_graph(
             source_id=caller_id,
             target_id=callee_id,
             edge_type=EdgeType.CALL,
-            confidence="high" if e.same_file else "medium",
+            confidence=(
+                bucket_confidence(e.confidence)
+                if advanced
+                else ("high" if e.same_file else "medium")
+            ),
+            confidence_score=e.confidence if advanced else None,
+            resolution_strategy=e.resolution_strategy if advanced else None,
+            evidence=(
+                _evidence(e.caller.split("::", 1)[0], e.call_line) if advanced else []
+            ),
             meta={"same_file": e.same_file, "from": "call_edge"},
         )
 
@@ -113,7 +134,16 @@ def build_knowledge_graph(
             source_id=child_id,
             target_id=parent_id,
             edge_type=EdgeType.INHERIT,
-            confidence="high" if e.same_file else "medium",
+            confidence=(
+                bucket_confidence(e.confidence)
+                if advanced
+                else ("high" if e.same_file else "medium")
+            ),
+            confidence_score=e.confidence if advanced else None,
+            resolution_strategy=e.resolution_strategy if advanced else None,
+            evidence=(
+                _evidence(e.child.split("::", 1)[0], e.decl_line) if advanced else []
+            ),
             meta={
                 "relation": e.relation,
                 "same_file": e.same_file,
@@ -133,8 +163,15 @@ def build_knowledge_graph(
             dependency_graph=True,
             definitions=has_definitions,
             inherit_supported=True,
+            advanced=advanced,
         ),
     )
+
+
+def _evidence(file_path: str, line: int | None) -> list[EvidenceSpan]:
+    if not file_path or line is None:
+        return []
+    return [EvidenceSpan(file_path=file_path.replace("\\", "/"), start_line=line)]
 
 
 def _collect_file_paths(

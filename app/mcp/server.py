@@ -12,6 +12,7 @@ from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 
+from app.config import settings
 from app.mcp.service import RepoScopeFacade
 
 mcp = FastMCP(
@@ -30,7 +31,11 @@ _facade: RepoScopeFacade | None = None
 def get_facade() -> RepoScopeFacade:
     global _facade
     if _facade is None:
-        _facade = RepoScopeFacade(use_hash_embedder=True)
+        _facade = RepoScopeFacade(
+            use_hash_embedder=True,
+            use_advanced_kg=settings.use_advanced_kg,
+            kg_storage=settings.kg_storage,
+        )
     return _facade
 
 

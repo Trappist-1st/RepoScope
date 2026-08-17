@@ -46,6 +46,10 @@ GOLD_PATH = ROOT / "eval" / "gold" / "structure.json"
 REPORT_DIR = ROOT / "eval" / "reports"
 QA_PATH = ROOT / "eval" / "datasets" / "qa_dataset.jsonl"
 
+# Knowledge-graph mode for this run. Set once from CLI args so every pipeline
+# and facade built below agrees; a mixed run would report meaningless numbers.
+MODE: dict[str, Any] = {"advanced": False, "storage": "json"}
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -71,6 +75,18 @@ def _pipeline(tmp: Path) -> IngestionPipeline:
         artifact_dir=tmp / "art",
         files_repo=InMemoryFilesRepository(),
         repos_repo=InMemoryReposRepository(),
+        use_advanced_kg=MODE["advanced"],
+        kg_storage=MODE["storage"],
+    )
+
+
+def _facade(work: Path) -> RepoScopeFacade:
+    return RepoScopeFacade(
+        workspace_root=work / "ws",
+        artifact_dir=work / "art",
+        use_hash_embedder=True,
+        use_advanced_kg=MODE["advanced"],
+        kg_storage=MODE["storage"],
     )
 
 
@@ -402,11 +418,7 @@ def ensure_remote(url: str, dest_parent: Path) -> Path:
 
 
 def bench_query_latency(fixture: Path, work: Path, repeats: int = 25) -> dict[str, Any]:
-    facade = RepoScopeFacade(
-        workspace_root=work / "ws",
-        artifact_dir=work / "art",
-        use_hash_embedder=True,
-    )
+    facade = _facade(work)
     repo = str(fixture)
     facade.get_initial_context(repo_url=repo)  # warm index
     samples: dict[str, list[float]] = {
@@ -441,11 +453,7 @@ def bench_query_latency(fixture: Path, work: Path, repeats: int = 25) -> dict[st
 
 def bench_token_proxy(fixture: Path, work: Path, query: str) -> dict[str, Any]:
     """Proxy for agent cost: one MCP pack vs reading every file that greps the query."""
-    facade = RepoScopeFacade(
-        workspace_root=work / "ws",
-        artifact_dir=work / "art",
-        use_hash_embedder=True,
-    )
+    facade = _facade(work)
     result = facade.context_explore(repo_url=str(fixture), query=query)
     mcp_text = json.dumps(result.model_dump(), ensure_ascii=False)
     mcp_tokens = estimate_tokens(mcp_text)
@@ -549,6 +557,8 @@ def bench_retrieval(
             artifact_dir=work / "ret_art",
             files_repo=InMemoryFilesRepository(),
             repos_repo=InMemoryReposRepository(),
+            use_advanced_kg=MODE["advanced"],
+            kg_storage=MODE["storage"],
         )
         result = pipe.run(str(repo_path))
         chunks, _ = pipe.load_artifacts(result.repo_id)
@@ -629,10 +639,10 @@ def bench_retrieval(
     }
 
 
-def write_reports(payload: dict[str, Any]) -> tuple[Path, Path]:
+def write_reports(payload: dict[str, Any], prefix: str = "latest") -> tuple[Path, Path]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    json_path = REPORT_DIR / "latest.json"
-    md_path = REPORT_DIR / "latest.md"
+    json_path = REPORT_DIR / f"{prefix}.json"
+    md_path = REPORT_DIR / f"{prefix}.md"
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
     g = payload["graph_gold"]
@@ -673,6 +683,7 @@ def write_reports(payload: dict[str, Any]) -> tuple[Path, Path]:
 - Generated: {payload['generated_at']}
 - Host: {payload['host']}
 - Command: `python -m eval.run_benchmarks`
+- KG mode: `use_advanced_kg={payload.get('kg_mode', {}).get('advanced')}` · storage `{payload.get('kg_mode', {}).get('storage')}`
 - Pytest: `{pytest_info['summary']}` (exit {pytest_info['exit_code']})
 
 ## Structure quality (fixture gold)
@@ -724,6 +735,19 @@ Ratio (grep+read / MCP): **{tok.get('token_ratio_grep_over_mcp')}×**
 
 {tok['note']}
 """
+    ab = tok.get("ab")
+    if isinstance(ab, dict):
+        md += f"""
+### KG mode A/B (`context_explore` payload)
+
+| `use_advanced_kg` | MCP tokens |
+|---|---:|
+| off (legacy) | {ab.get('legacy_mcp_tokens')} |
+| on (cascade) | {ab.get('advanced_mcp_tokens')} |
+
+Token reduction: **{ab.get('reduction_pct')}%** — same fixture, same query, same
+seeds; the advanced path drops `report_markdown` and prunes low-confidence edges.
+"""
     extra = tok.get("requests")
     if isinstance(extra, dict):
         md += f"""
@@ -757,7 +781,31 @@ def main() -> None:
     )
     parser.add_argument("--latency-repeats", type=int, default=25)
     parser.add_argument("--skip-pytest", action="store_true")
+    parser.add_argument(
+        "--advanced-kg",
+        action="store_true",
+        help="Run with config.use_advanced_kg on (cascading resolution).",
+    )
+    parser.add_argument(
+        "--kg-storage",
+        choices=("json", "sqlite"),
+        default="json",
+        help="Artifact backend for this run.",
+    )
+    parser.add_argument(
+        "--ab",
+        action="store_true",
+        help="Also measure the token proxy in the other KG mode and report the delta.",
+    )
+    parser.add_argument(
+        "--out-prefix",
+        default="latest",
+        help="Report basename under eval/reports (e.g. --out-prefix advanced).",
+    )
     args = parser.parse_args()
+
+    MODE["advanced"] = args.advanced_kg
+    MODE["storage"] = args.kg_storage
 
     gold = json.loads(GOLD_PATH.read_text(encoding="utf-8"))
     work = Path(tempfile.mkdtemp(prefix="reposcope-bench-"))
@@ -770,6 +818,7 @@ def main() -> None:
     print("=" * 72)
     print("RepoScope benchmarks")
     print(f"work dir: {work}")
+    print(f"kg mode:  advanced={MODE['advanced']} storage={MODE['storage']}")
     print("=" * 72)
 
     pytest_info = {"exit_code": None, "summary": "skipped", "passed": None}
@@ -843,6 +892,33 @@ def main() -> None:
             "How does Session.send an HTTP request?",
         )
 
+    if args.ab:
+        other = not MODE["advanced"]
+        print(f"… token proxy A/B (advanced={other})")
+        MODE["advanced"] = other
+        try:
+            baseline = bench_token_proxy(
+                ROOT / "tests/fixtures/flow_fastapi_login",
+                work / "tok_ab",
+                "How does login work?",
+            )
+        finally:
+            MODE["advanced"] = args.advanced_kg
+        this_t = token_proxy["mcp_tokens"]
+        other_t = baseline["mcp_tokens"]
+        # Always express the delta as advanced-relative-to-legacy, whichever
+        # side this run happened to measure first.
+        adv, leg = (this_t, other_t) if args.advanced_kg else (other_t, this_t)
+        token_proxy["ab"] = {
+            "legacy_mcp_tokens": leg,
+            "advanced_mcp_tokens": adv,
+            "reduction_pct": round((leg - adv) / leg * 100, 2) if leg else None,
+        }
+        print(
+            f"  legacy={leg} advanced={adv} "
+            f"reduction={token_proxy['ab']['reduction_pct']}%"
+        )
+
     print("… retrieval")
     retrieval = bench_retrieval(
         real_embed=args.real_embed,
@@ -856,6 +932,7 @@ def main() -> None:
     payload = {
         "generated_at": _utc_now(),
         "host": host,
+        "kg_mode": dict(MODE),
         "pytest": pytest_info,
         "graph_gold": graph_gold,
         "flow": flow,
@@ -866,7 +943,7 @@ def main() -> None:
         "token_proxy": token_proxy,
         "retrieval": retrieval,
     }
-    json_path, md_path = write_reports(payload)
+    json_path, md_path = write_reports(payload, args.out_prefix)
     print()
     print(f"Wrote {json_path}")
     print(f"Wrote {md_path}")

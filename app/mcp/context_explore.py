@@ -11,6 +11,7 @@ from app.mcp.schemas import (
     CallPathOut,
     CallPathStepOut,
     CitationOut,
+    Evidence,
     ExploreSeedOut,
 )
 from app.models.schemas import Chunk, DependencyGraph
@@ -129,26 +130,51 @@ def blast_radius_for_seeds(
     *,
     depth: int = 2,
     limit: int = 40,
+    min_confidence: float | None = None,
 ) -> list[BlastRadiusHit]:
+    """Callers, callees, and type relatives of the seeds.
+
+    ``min_confidence`` drops call edges the cascade was not sure about. Legacy
+    edges score 1.0, so passing a threshold is a no-op on a legacy graph.
+    """
     hits: list[BlastRadiusHit] = []
     seen: set[tuple[str, str]] = set()
+    evidence_by_pair = _call_evidence(graph)
 
-    def _add(ref: str, relation: str, hops: int) -> None:
+    def _confident(a: str, b: str) -> bool:
+        if min_confidence is None:
+            return True
+        return _call_confidence(graph, a, b) >= min_confidence
+
+    def _add(
+        ref: str, relation: str, hops: int, evidence: Evidence | None = None
+    ) -> None:
         key = (ref, relation)
         if key in seen or not ref:
             return
         seen.add(key)
-        hits.append(BlastRadiusHit(symbol_ref=ref, relation=relation, hops=hops))
+        hits.append(
+            BlastRadiusHit(
+                symbol_ref=ref,
+                relation=relation,
+                hops=hops,
+                evidence=[evidence] if evidence is not None else [],
+            )
+        )
 
     frontier = list(seed_refs)
     for hop in range(1, max(1, depth) + 1):
         nxt: list[str] = []
         for ref in frontier:
             for caller in callers_of(graph, ref):
-                _add(caller, "caller", hop)
+                if not _confident(caller, ref):
+                    continue
+                _add(caller, "caller", hop, evidence_by_pair.get((caller, ref)))
                 nxt.append(caller)
             for callee in callees_of(graph, ref):
-                _add(callee, "callee", hop)
+                if not _confident(ref, callee):
+                    continue
+                _add(callee, "callee", hop, evidence_by_pair.get((ref, callee)))
                 nxt.append(callee)
             for parent in parents_of(graph, ref):
                 # find relation from edge
@@ -167,6 +193,40 @@ def blast_radius_for_seeds(
         if not frontier:
             break
     return hits[:limit]
+
+
+def _call_evidence(graph: DependencyGraph) -> dict[tuple[str, str], Evidence]:
+    """(caller, callee) -> the `file:line` the call was actually observed on.
+
+    Without this the blast radius names symbols but cannot point at the line
+    that justifies the relationship, which is the anti-hallucination contract.
+    """
+    out: dict[tuple[str, str], Evidence] = {}
+    for e in graph.call_edges:
+        if e.call_line is None:
+            continue
+        file_path = e.caller.split("::", 1)[0]
+        out.setdefault(
+            (e.caller, e.callee),
+            Evidence(
+                citation=CitationOut.from_parts(file_path, e.call_line, e.call_line),
+                symbol_name=e.callee.split("::")[-1],
+                evidence_tier="direct",
+                expansion_reason=e.resolution_strategy,
+            ),
+        )
+    return out
+
+
+def _call_confidence(graph: DependencyGraph, caller: str, callee: str) -> float:
+    best = 0.0
+    found = False
+    for e in graph.call_edges:
+        if e.caller == caller and e.callee == callee:
+            found = True
+            best = max(best, e.confidence)
+    # Inherit/import relatives arrive here without a call edge; do not prune them.
+    return best if found else 1.0
 
 
 def call_paths_from_callees(

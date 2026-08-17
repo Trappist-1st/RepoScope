@@ -191,6 +191,34 @@ Ratio grep/MCP = **0.07×**. The pack is larger than the whole fixture. **Do not
 
 Ratio grep/MCP = **17.2×** tool-call count 47 → 1. This is the row that is allowed in a README *with the proxy paragraph attached*. It is still not SWE-bench.
 
+### Token proxy A/B: `use_advanced_kg`
+
+Same fixture, same query, same seeds; only `config.use_advanced_kg` differs.
+Reproduce with `python -m eval.run_benchmarks --advanced-kg --ab`.
+
+| Fixture | off (legacy) | on (cascade) | Reduction |
+|---|---:|---:|---:|
+| `flow_fastapi_login` | 1984 | 1526 | **23.1%** |
+| `psf/requests` | 7852 | 5935 | **24.4%** |
+
+The saving is deduplication, not truncation. `report_markdown` is dropped
+because every fact in it is already in the structured fields, and a seed that
+also appears in `must_read` drops its duplicated snippet while keeping its rank
+and citation. Working against that, blast-radius hits gain a `file:line`
+evidence span; the percentages above are net of that cost.
+
+Gold-edge recall is unchanged at 18/18 in both modes, as are flow term
+coverage, impact, reviewer catch rate, and Recall@5 — see
+`eval/reports/legacy.md` and `eval/reports/advanced.md`.
+
+### Reproducibility fix
+
+`HashEmbedder` hashed tokens with the builtin `hash()`, which CPython salts per
+process. Every CI/smoke retrieval number therefore moved run to run (observed
+Recall@5 of 0.611 / 0.667 / 0.778 for identical inputs). It now uses blake2b
+and repeated runs are bit-identical. **Retrieval rows measured before this fix
+are not reproducible and should not be compared against current ones.**
+
 ---
 
 ## Roadmap (so this file does not freeze as a fixture-only story)
@@ -211,6 +239,11 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,retrieval]"
 python -m eval.run_benchmarks --real-embed
 diff -u BENCHMARKS.md eval/reports/latest.md   # narrative vs raw
+
+# knowledge-graph modes (reports land under eval/reports/<prefix>.{json,md})
+python -m eval.run_benchmarks --out-prefix legacy
+python -m eval.run_benchmarks --advanced-kg --ab --out-prefix advanced
+python -m eval.run_benchmarks --advanced-kg --kg-storage sqlite --out-prefix advanced_sqlite
 ```
 
 If Hybrid lift is quoted from a HashEmbedder run, it is invalid. If token ratio is quoted without the proxy paragraph, it is invalid.

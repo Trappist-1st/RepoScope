@@ -46,10 +46,23 @@ class FileIndexRecord(BaseModel):
     last_indexed_at: str
 
 
+ResolutionStrategy = Literal[
+    "legacy",
+    "import_map",
+    "import_suffix",
+    "same_module",
+    "unique_name",
+    "import_distance",
+    "fuzzy",
+    "type_resolved",
+]
+
+
 class FileDependencyEdge(BaseModel):
     source: str
     target: str
     edge_type: str = "imports"
+    import_line: int | None = None
 
 
 class CallEdge(BaseModel):
@@ -57,6 +70,9 @@ class CallEdge(BaseModel):
     callee: str
     edge_type: str = "calls"
     same_file: bool = True
+    confidence: float = 1.0
+    resolution_strategy: ResolutionStrategy = "legacy"
+    call_line: int | None = None
 
 
 class InheritEdge(BaseModel):
@@ -66,6 +82,9 @@ class InheritEdge(BaseModel):
     parent: str
     relation: Literal["extends", "implements"] = "extends"
     same_file: bool = False
+    confidence: float = 1.0
+    resolution_strategy: ResolutionStrategy = "legacy"
+    decl_line: int | None = None
 
 
 class DependencyGraph(BaseModel):
@@ -85,7 +104,9 @@ class ParseResult(BaseModel):
     parse_ok: bool
 
 
-GraphUpdateMode = Literal["full", "merge", "cached"]
+# "structure_cached": file bytes changed but no AST structure did (comments,
+# formatting), so the previous graph is reused without a merge.
+GraphUpdateMode = Literal["full", "merge", "cached", "structure_cached"]
 
 
 class IngestResult(BaseModel):

@@ -71,9 +71,15 @@ class RepoScopeFacade:
         state_cache: RunStateCache | None = None,
         use_hash_embedder: bool = True,
         analyzer: Analyzer | None = None,
+        use_advanced_kg: bool | None = None,
+        kg_storage: str | None = None,
     ) -> None:
         self.workspace_root = Path(workspace_root or settings.workspace_root)
         self.artifact_dir = Path(artifact_dir or settings.artifact_dir)
+        self.use_advanced_kg = (
+            settings.use_advanced_kg if use_advanced_kg is None else use_advanced_kg
+        )
+        self.kg_storage = kg_storage or settings.kg_storage
         self.audit_store = audit_store or create_agent_run_store(settings.database_url)
         self.state_cache = state_cache or create_run_state_cache(settings.redis_url)
         self.files_repo = InMemoryFilesRepository()
@@ -83,6 +89,8 @@ class RepoScopeFacade:
             artifact_dir=self.artifact_dir,
             files_repo=self.files_repo,
             repos_repo=self.repos_repo,
+            use_advanced_kg=self.use_advanced_kg,
+            kg_storage=self.kg_storage,
         )
         cfg = load_retrieval_config()
         self.retrieval = RetrievalService(
@@ -1102,15 +1110,33 @@ class RepoScopeFacade:
             seed_refs,
             depth=max(1, min(blast_depth, 4)),
             limit=40,
+            min_confidence=settings.kg_min_confidence if self.use_advanced_kg else None,
         )
 
-        report = format_explore_markdown(
-            query=q,
-            seeds=seeds,
-            must_read=must_read,
-            call_paths=call_paths,
-            blast_radius=blast,
-        )
+        if self.use_advanced_kg:
+            # The structured fields already carry every fact the markdown
+            # restates, and the snippets are duplicated verbatim inside it.
+            # Dropping the prose is the single largest payload saving.
+            report = ""
+            # must_read is drawn from seeds, so the top seeds repeat their whole
+            # snippet twice in one response. Keep the copy under must_read --
+            # that is the list the agent is told to read -- and leave the seed
+            # entry as a ranked pointer with its citation intact.
+            must_read_refs = {m.symbol_ref for m in must_read}
+            seeds = [
+                s.model_copy(update={"snippet": ""})
+                if s.symbol_ref in must_read_refs
+                else s
+                for s in seeds
+            ]
+        else:
+            report = format_explore_markdown(
+                query=q,
+                seeds=seeds,
+                must_read=must_read,
+                call_paths=call_paths,
+                blast_radius=blast,
+            )
         low = not seeds or (not call_paths and not blast)
 
         took_ms = int((time.perf_counter() - t0) * 1000)
@@ -1219,8 +1245,12 @@ class RepoScopeFacade:
         from app.intelligence import build_knowledge_graph, try_load_knowledge_graph
         from app.models.schemas import Definition
 
-        kg = try_load_knowledge_graph(repo_id, artifact_dir=self.artifact_dir)
-        if kg is not None:
+        kg = try_load_knowledge_graph(
+            repo_id, artifact_dir=self.artifact_dir, storage=self.kg_storage
+        )
+        # A cached graph built in the other mode would mix cascade and legacy
+        # edges, so treat a mode mismatch as a cache miss.
+        if kg is not None and kg.source.advanced == self.use_advanced_kg:
             return kg
         _, dep = self.ingestion.load_artifacts(repo_id)
         defs_path = self.artifact_dir / repo_id / "definitions.json"
@@ -1233,11 +1263,15 @@ class RepoScopeFacade:
                 path: [Definition.model_validate(d) for d in defs]
                 for path, defs in raw.items()
             }
-        kg = build_knowledge_graph(dep, definitions_by_file or None)
+        kg = build_knowledge_graph(
+            dep, definitions_by_file or None, advanced=self.use_advanced_kg
+        )
         try:
             from app.intelligence import save_knowledge_graph
 
-            save_knowledge_graph(kg, artifact_dir=self.artifact_dir)
+            save_knowledge_graph(
+                kg, artifact_dir=self.artifact_dir, storage=self.kg_storage
+            )
         except Exception:
             pass
         return kg

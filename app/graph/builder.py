@@ -32,6 +32,11 @@ _JS_SIDE_EFFECT = re.compile(r"""import\s+['"]([^'"]+)['"]""")
 _JAVA_IMPORT = re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+)\s*;", re.MULTILINE)
 
 _CALL_NAME = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+# `def foo(` / `function foo(` / `class Foo(` — a declaration, not a call site.
+# The regex fallback would otherwise report every definition as calling itself.
+_DECL_CALL = re.compile(
+    r"\b(?:def|function|fun|func|sub|class)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\("
+)
 # obj.method( — receiver hint for Java/JS-ish regex fallback
 _RECEIVER_CALL = re.compile(
     r"\b(?:this\.)?([A-Za-z_][A-Za-z0-9_]*)\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\("
@@ -57,6 +62,7 @@ class DependencyGraphBuilder:
         definitions_by_file: dict[str, list[Definition]],
         *,
         origin_paths: set[str] | None = None,
+        advanced: bool = False,
     ) -> DependencyGraph:
         """
         Build dependency graph.
@@ -64,6 +70,11 @@ class DependencyGraphBuilder:
         When ``origin_paths`` is set, only emit edges that *originate* from those
         files (imports/calls/inherit from those files). Resolution still uses the
         full ``files`` / ``definitions_by_file`` maps — for incremental merge.
+
+        ``advanced`` swaps call resolution for the six-strategy cascade in
+        :class:`SymbolResolver`, which scores every edge and records the line it
+        came from. The legacy branch is kept verbatim so the flag is a true
+        rollback switch.
         """
         path_index = self._build_path_index(files.keys())
         file_edges: list[FileDependencyEdge] = []
@@ -84,10 +95,16 @@ class DependencyGraphBuilder:
             import_symbol_by_file[file_path] = local_to_symbol
             if origins is not None and file_path not in origins:
                 continue
+            import_lines = self._import_lines(content) if advanced else {}
             for target in sorted(targets):
                 if target != file_path and target in files:
                     file_edges.append(
-                        FileDependencyEdge(source=file_path, target=target, edge_type="imports")
+                        FileDependencyEdge(
+                            source=file_path,
+                            target=target,
+                            edge_type="imports",
+                            import_line=import_lines.get(Path(target).stem),
+                        )
                     )
 
         # Global symbol index: simple_name -> list[(file, definition)]
@@ -103,6 +120,7 @@ class DependencyGraphBuilder:
             definitions_by_file=definitions_by_file,
             path_index=path_index,
             import_map_by_file=import_map_by_file,
+            import_symbol_by_file=import_symbol_by_file,
         )
         inherit_edges: list[InheritEdge] = []
 
@@ -141,11 +159,27 @@ class DependencyGraphBuilder:
                             parent=parent_ref,
                             relation=base.relation,
                             same_file=parent_ref.startswith(f"{file_path}::"),
+                            decl_line=d.start_line if advanced else None,
+                            resolution_strategy="type_resolved" if advanced else "legacy",
                         )
                     )
 
-            callers = self._iter_call_sites(file_path, content, defs)
-            for caller_ref, callee_name, receiver in callers:
+            callers = self._iter_call_sites(
+                file_path, content, defs, drop_declarations=advanced
+            )
+            if advanced:
+                call_edges.extend(
+                    self._resolve_calls_cascade(
+                        callers,
+                        file_path=file_path,
+                        resolver=resolver,
+                        field_types=field_types,
+                        language=language,
+                    )
+                )
+                continue
+
+            for caller_ref, callee_name, receiver, _line in callers:
                 # same-file resolution
                 if callee_name in local:
                     callee_ref = symbol_ref(file_path, local[callee_name])
@@ -227,6 +261,67 @@ class DependencyGraphBuilder:
             call_edges=call_edges,
             inherit_edges=inherit_edges,
         )
+
+    def structural_facts(
+        self,
+        file_path: str,
+        content: str,
+        definitions: list[Definition],
+    ) -> tuple[set[str], set[str]]:
+        """Edge-producing facts of one file, with line numbers stripped out.
+
+        Feeds the AST structure hash: two revisions agreeing on these sets
+        produce the same edges, so the graph can be reused as-is.
+        """
+        calls = {
+            f"{caller}|{receiver or ''}|{name}"
+            for caller, name, receiver, _line in self._iter_call_sites(
+                file_path, content, definitions
+            )
+        }
+        imports = {
+            " ".join(line.split())
+            for line in content.splitlines()
+            if line.strip().startswith(("import ", "from ")) or "require(" in line
+        }
+        return calls, imports
+
+    def _resolve_calls_cascade(
+        self,
+        call_sites: list[tuple[str, str, str | None, int | None]],
+        *,
+        file_path: str,
+        resolver: SymbolResolver,
+        field_types: dict[str, str],
+        language: str | None,
+    ) -> list[CallEdge]:
+        """Resolve one file's call sites through the six-strategy cascade.
+
+        Every edge carries the line it was observed on, so downstream tools can
+        cite `file:line` for the relationship itself and not just the endpoints.
+        """
+        edges: list[CallEdge] = []
+        for caller_ref, callee_name, receiver, line in call_sites:
+            hit = resolver.resolve_call(
+                callee_name,
+                from_file=file_path,
+                receiver=receiver,
+                field_types=field_types,
+                language=language,
+            )
+            if hit is None:
+                continue
+            edges.append(
+                CallEdge(
+                    caller=caller_ref,
+                    callee=hit.symbol_ref,
+                    same_file=hit.file_path == file_path,
+                    confidence=hit.confidence,
+                    resolution_strategy=hit.strategy,
+                    call_line=line,
+                )
+            )
+        return edges
 
     def merge_update(
         self,
@@ -318,6 +413,19 @@ class DependencyGraphBuilder:
                 continue
             seen.add(key)
             out.append(e)
+        return out
+
+    @staticmethod
+    def _import_lines(content: str) -> dict[str, int]:
+        """module stem -> first line that imports it, for edge citations."""
+        out: dict[str, int] = {}
+        for i, line in enumerate(content.splitlines(), start=1):
+            stripped = line.strip()
+            if not (stripped.startswith(("import ", "from ")) or "require(" in stripped):
+                continue
+            for token in re.findall(r"[A-Za-z_][\w.]*", stripped):
+                stem = token.split(".")[-1]
+                out.setdefault(stem, i)
         return out
 
     @staticmethod
@@ -529,13 +637,19 @@ class DependencyGraphBuilder:
         file_path: str,
         content: str,
         definitions: list[Definition],
-    ) -> list[tuple[str, str, str | None]]:
+        *,
+        drop_declarations: bool = False,
+    ) -> list[tuple[str, str, str | None, int | None]]:
         """
-        Yield (caller_ref, callee_simple_name, receiver_or_None).
+        Yield (caller_ref, callee_simple_name, receiver_or_None, line).
         Prefer mapping call lines to enclosing definition; fall back to file::module.
+
+        ``drop_declarations`` suppresses the regex fallback's habit of reading a
+        `def foo(` header as a call to ``foo``. It is off by default so the
+        legacy path keeps producing byte-identical edges.
         """
         language = detect_language(file_path)
-        results: list[tuple[str, str, str | None]] = []
+        results: list[tuple[str, str, str | None, int | None]] = []
 
         # Build line -> enclosing definition (innermost wins)
         line_owner: dict[int, Definition] = {}
@@ -564,6 +678,11 @@ class DependencyGraphBuilder:
             caller = (
                 symbol_ref(file_path, owner) if owner else f"{file_path}::__module__"
             )
+            declared = (
+                {m.group(1) for m in _DECL_CALL.finditer(line)}
+                if drop_declarations
+                else set()
+            )
             for match in _RECEIVER_CALL.finditer(line):
                 receiver, name = match.group(1), match.group(2)
                 if name in {"if", "for", "while", "switch", "catch", "return"}:
@@ -572,10 +691,12 @@ class DependencyGraphBuilder:
                 if key in seen_spans:
                     continue
                 seen_spans.add(key)
-                results.append((caller, name, receiver))
+                results.append((caller, name, receiver, i))
             for match in _CALL_NAME.finditer(line):
                 name = match.group(1)
                 if name in {"if", "for", "while", "switch", "catch", "return", "function", "class"}:
+                    continue
+                if name in declared:
                     continue
                 # skip if already captured as receiver.method on this line
                 if any(s[0] == i and s[1] == name for s in seen_spans):
@@ -584,7 +705,7 @@ class DependencyGraphBuilder:
                 if key in seen_spans:
                     continue
                 seen_spans.add(key)
-                results.append((caller, name, None))
+                results.append((caller, name, None, i))
         return results
 
     def _calls_via_tree_sitter(
@@ -593,11 +714,11 @@ class DependencyGraphBuilder:
         content: str,
         language: str,
         line_owner: dict[int, Definition],
-    ) -> list[tuple[str, str, str | None]]:
+    ) -> list[tuple[str, str, str | None, int | None]]:
         source = content.encode("utf-8")
         parser = get_parser(language)
         tree = parser.parse(source)
-        results: list[tuple[str, str, str | None]] = []
+        results: list[tuple[str, str, str | None, int | None]] = []
 
         call_types = {
             "call",  # python
@@ -617,7 +738,7 @@ class DependencyGraphBuilder:
             line = node.start_point[0] + 1
             owner = line_owner.get(line)
             caller = symbol_ref(file_path, owner) if owner else f"{file_path}::__module__"
-            results.append((caller, name, receiver))
+            results.append((caller, name, receiver, line))
         return results
 
     def _extract_call_target(
