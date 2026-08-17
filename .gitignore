@@ -12,6 +12,7 @@ node_modules/
 .mypy_cache/
 data/workspace/
 data/artifacts/
+data/eval_repos/
 data/artifacts_retest/
 data/artifacts_retest2/
 data/exp_artifacts/

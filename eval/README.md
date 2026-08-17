@@ -1,26 +1,46 @@
-# RepoScope Evaluation Harness (Phase 6)
+# RepoScope Evaluation Harness
 
-This folder is the **source of truth for resume / interview numbers**.
-Smoke fixtures are included; replace them with your own 15–20 repos before claiming lifts.
+Quoted numbers live in [`../BENCHMARKS.md`](../BENCHMARKS.md). This folder is how you **reproduce** them.
+
+## Three-layer path
+
+| Layer | Metrics | Gold | Command |
+|---|---|---|---|
+| **1. Retrieval quality** | Precision@K, Recall@K, **MRR@K** | [`datasets/qa_dataset.jsonl`](datasets/qa_dataset.jsonl) — NL → `file:line` (fixtures + `psf/requests`) | `python -m eval.run_retrieval_eval --compare-modes` · add `--with-rerank` for hybrid+rerank · `--real-embed` via not passing `--hash-embedder` |
+| **2. NL → structured tools** (Spider/BIRD-style) | Caller/callee recall; flow **ordered coverage**; citation faithfulness | [`gold/tools.jsonl`](gold/tools.jsonl) | `python -m eval.run_tool_eval` |
+| **3. MCP task utility** | Task success rate, tool-call steps | [`gold/mcp_tasks.jsonl`](gold/mcp_tasks.jsonl) | `python -m eval.run_mcp_tasks` |
+| **Perf / efficiency** | files/s, LOC/s, artifact bytes, query p50/p95 | [`repos.yaml`](repos.yaml) buckets small / medium / large | `python -m eval.run_perf --bucket small` |
+
+Context-explore *faithfulness* is the `cited` flag on flow steps plus Reviewer catch rate in `run_benchmarks` (RAGAS-like: every claim must map to `file:line`; we do **not** run an LLM-as-judge).
+
+Smoke everything except large ingest:
+
+```bash
+python -m eval.run_benchmarks --skip-remote
+python -m eval.run_tool_eval --skip-remote
+python -m eval.run_mcp_tasks --skip-remote
+python -m eval.run_retrieval_eval --compare-modes --hash-embedder
+python -m eval.run_perf --bucket small --skip-latency
+```
+
+Official retrieval (MiniLM): drop `--hash-embedder`. Medium/large clones (`sqlalchemy`, `django`) are opt-in — do not quote empty buckets.
 
 ## Layout
 
 ```
 eval/
-├── datasets/
-│   ├── qa_dataset.jsonl          # annotated retrieval questions (you fill)
-│   ├── analyze_samples.jsonl     # demo analyze dumps for human-eval practice
-│   └── retrieval_qa.jsonl        # legacy Phase-2 skeleton (still loadable)
-├── test_repos.yaml               # checklist of repos you plan to evaluate
-├── metrics.py                    # Recall@k / Precision@k (overlap matching)
-├── dataset.py                    # JSONL loader + schema normalization
-├── run_retrieval_eval.py         # vector vs BM25 vs Hybrid comparison
-├── run_human_eval.py             # interactive citation/grounding labeling
-├── run_context_budget_exp.py     # Context Engine budget experiment
-└── reports/
-    ├── evaluation_report_template.md   # fill with real numbers
-    ├── retrieval_compare.md            # auto-written by retrieval eval
-    └── human_eval_summary.md           # auto-written by human eval
+├── gold/
+│   ├── structure.json            # must-resolve graph/flow/impact edges
+│   ├── tools.jsonl               # NL → query_dependencies / trace_flow / impact
+│   └── mcp_tasks.jsonl           # scripted agent goals
+├── repos.yaml                    # classic public repos by size bucket
+├── datasets/qa_dataset.jsonl     # retrieval gold (file + overlapping lines)
+├── run_retrieval_eval.py         # vector vs BM25 vs hybrid [+ rerank]
+├── run_tool_eval.py
+├── run_mcp_tasks.py
+├── run_perf.py
+├── run_benchmarks.py             # combined snapshot
+└── reports/                      # gitignored
 ```
 
 ## 1. QA dataset schema (JSONL)

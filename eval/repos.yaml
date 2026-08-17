@@ -1,0 +1,49 @@
+# Classic public repos for size-bucketed ingest / query latency.
+# Inclusion rule: well-known, OSI-licensed, we can name why it is here.
+# File counts are *indexed* sources (supported langs, tests/venv excluded) — measured, not guessed.
+
+version: 1
+buckets:
+  small:
+    max_files: 100
+    repos:
+      - id: requests
+        url: https://github.com/psf/requests.git
+        local_path: data/eval_repos/requests
+        why: canonical Python HTTP client; Session/adapter call graph
+        mutate: src/requests/sessions.py
+      - id: httpx
+        url: https://github.com/encode/httpx.git
+        local_path: data/eval_repos/httpx
+        why: async/sync HTTP client; compare with requests
+        mutate: httpx/_client.py
+  medium:
+    min_files: 100
+    max_files: 5000
+    repos:
+      - id: flask
+        url: https://github.com/pallets/flask.git
+        local_path: data/eval_repos/flask
+        why: canonical Python web framework (may land in small if tests are excluded)
+        mutate: src/flask/app.py
+      - id: sqlalchemy
+        url: https://github.com/sqlalchemy/sqlalchemy.git
+        local_path: data/eval_repos/sqlalchemy
+        why: mid-size Python library; typical "1000 files" bucket candidate
+        mutate: lib/sqlalchemy/orm/session.py
+  large:
+    min_files: 5000
+    repos:
+      - id: django
+        url: https://github.com/django/django.git
+        local_path: data/eval_repos/django
+        why: classic large Python codebase (not Linux kernel; we do not claim kernel-scale)
+        mutate: django/db/models/base.py
+
+# Gold-annotated *today* (tool + retrieval). Others are ingest-only until labeled.
+annotated:
+  - tests/fixtures/sample_repo
+  - tests/fixtures/flow_fastapi_login
+  - tests/fixtures/flow_spring_login
+  - tests/fixtures/inherit_repo
+  - data/eval_repos/requests

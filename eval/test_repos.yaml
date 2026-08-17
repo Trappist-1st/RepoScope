@@ -1,49 +1,143 @@
-# Test repositories for Phase-6 evaluation
+# Test repositories for evaluation
 #
-# Fill this in as you pick 15–20 repos. The retrieval eval script primarily
-# reads repo_url / repo_path from each QA row; this file is a checklist /
-# registry so you don't lose track of what you planned to cover.
+# Inclusion rule: well-known, OSI-licensed, manageable size.
+# status: smoke | planned | cloned | annotated
+#
+# Annotation means gold spans exist in gold/tools.jsonl + mcp_tasks.jsonl.
+# "planned" means tasks are drafted in gold files but the repo hasn't been
+# cloned / verified locally yet — run `run_smoke` to advance to "cloned".
 
 version: 1
 notes: >
-  Aim for language + size diversity (Python web, Java/Spring, JS/TS frontend,
+  Aim for language + size diversity (Python web, Java/Spring, JS/TS,
   a mid-size library). Prefer repos you already understand so gold spans are
-  trustworthy.
+  trustworthy. smoke → clone → annotate in order.
 
 repos:
+  # ── Fixtures (always available, no network) ──────────────────────────────
   - id: sample-fixture
     url: null
     local_path: tests/fixtures/sample_repo
     languages: [python, javascript, typescript, java]
-    status: smoke  # smoke | planned | cloned | annotated
-    notes: Built-in fixture for harness smoke tests
+    status: annotated
+    notes: Built-in multi-language fixture; full gold in structure.json + tools.jsonl
 
-  # --- copy/paste templates below ---
+  - id: flow-fastapi-login
+    url: null
+    local_path: tests/fixtures/flow_fastapi_login
+    languages: [python]
+    status: annotated
+    notes: FastAPI layered login; gold flow + dependency edges
+
+  - id: flow-spring-login
+    url: null
+    local_path: tests/fixtures/flow_spring_login
+    languages: [java]
+    status: annotated
+    notes: Spring layered login; gold flow + dependency edges
+
+  - id: inherit-repo
+    url: null
+    local_path: tests/fixtures/inherit_repo
+    languages: [python, java]
+    status: annotated
+    notes: Inheritance / implements edges; gold impact Animal→Dog
+
+  # ── Small real repos (< 100 indexed files) ───────────────────────────────
   - id: requests
     url: https://github.com/psf/requests.git
     local_path: data/eval_repos/requests
     languages: [python]
-    status: planned
-    notes: HTTP client; good for Session / adapter dependency questions
+    status: annotated
+    notes: >
+      Canonical HTTP client; good for Session/adapter dependency questions.
+      Gold tasks cover: explore, flow, impact, architecture, search, deps,
+      initial_context (7 tasks in mcp_tasks.jsonl; 5 in tools.jsonl).
+    planned_questions:
+      - "What breaks if I change Session.send?"            # explore_first ✓
+      - "How does HTTP authentication work?"               # flow_first ✓
+      - "HTTPAdapter.send blast radius"                    # impact_first ✓
+      - "What is the architecture pattern of requests?"    # architecture_first ✓
+      - "retry backoff"                                    # search_first ✓
+      - "Session.send dependencies"                        # deps_first ✓
+      - "(initial context)"                                # initial_context_first ✓
 
   - id: httpx
     url: https://github.com/encode/httpx.git
     local_path: data/eval_repos/httpx
     languages: [python]
     status: planned
-    notes: Async/sync client; compare with requests-style questions
+    notes: >
+      Async/sync HTTP client; great for comparing async flow with requests.
+      Clone: git clone --depth 1 https://github.com/encode/httpx.git data/eval_repos/httpx
+    planned_questions:
+      - "How does AsyncClient send an HTTP request?"       # flow_first
+      - "What is the architecture of httpx?"              # architecture_first
+      - "HTTPTransport.handle_request blast radius"       # impact_first
+      - "timeout configuration"                           # search_first
+      - "AsyncClient dependencies"                        # deps_first
 
-  # - id: my-spring-demo
-  #   url: https://github.com/<you>/<repo>.git
-  #   local_path: data/eval_repos/my-spring-demo
-  #   languages: [java]
-  #   status: planned
-  #   notes: Microservice entrypoints + DI wiring
+  # ── Medium real repos (100–5000 indexed files) ───────────────────────────
+  - id: flask
+    url: https://github.com/pallets/flask.git
+    local_path: data/eval_repos/flask
+    languages: [python]
+    status: planned
+    notes: >
+      Canonical Python web framework; good for routing + application context.
+      Clone: git clone --depth 1 https://github.com/pallets/flask.git data/eval_repos/flask
+    planned_questions:
+      - "How does Flask route and dispatch a request?"    # flow_first
+      - "What is the architecture of Flask?"             # architecture_first
+      - "dispatch_request blast radius"                  # impact_first
+      - "blueprint register"                             # search_first
+      - "Flask.dispatch_request dependencies"            # deps_first
+
+  - id: sqlalchemy
+    url: https://github.com/sqlalchemy/sqlalchemy.git
+    local_path: data/eval_repos/sqlalchemy
+    languages: [python]
+    status: planned
+    notes: >
+      Mid-size ORM library; good for Session/mapper flow and flush/commit chains.
+      Expect ingest to take ~30s on first run (many files).
+      Clone: git clone --depth 1 https://github.com/sqlalchemy/sqlalchemy.git data/eval_repos/sqlalchemy
+    planned_questions:
+      - "How does Session.commit work?"                  # flow_first
+      - "What is the architecture of SQLAlchemy?"       # architecture_first
+      - "Session.flush blast radius"                    # impact_first
+      - "identity map"                                  # search_first
+
+  # ── Large real repos (> 5000 indexed files) ──────────────────────────────
+  - id: django
+    url: https://github.com/django/django.git
+    local_path: data/eval_repos/django
+    languages: [python]
+    status: planned
+    notes: >
+      Classic large Python codebase. Ingest will be slow (~10+ minutes).
+      Only clone when explicitly benchmarking the large bucket.
+      Clone: git clone --depth 1 https://github.com/django/django.git data/eval_repos/django
+    planned_questions:
+      - "How does Django handle a request?"              # flow_first
+      - "What is the architecture of Django?"           # architecture_first
+      - "Model.save blast radius"                       # impact_first
 
 coverage_targets:
   question_types:
     summary: "architecture / module overview"
     dependency: "who imports / calls / wires X"
     refactor: "how to improve structure of X"
-  suggested_questions_per_repo: "3-5"
-  suggested_total_questions: "45-80 (15-20 repos × 3-5)"
+    flow: "end-to-end call chain for a feature"
+    impact: "blast radius of changing a symbol"
+    search: "find code related to X"
+  suggested_questions_per_repo: "5-7"
+  tool_types_to_cover:
+    - get_initial_context
+    - analyze_architecture
+    - context_explore
+    - trace_flow
+    - search_code
+    - query_dependencies
+    - analyze_impact
+    - view_source

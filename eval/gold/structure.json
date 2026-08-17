@@ -1,0 +1,129 @@
+{
+  "graph_cases": [
+    {
+      "id": "sample_python",
+      "path": "tests/fixtures/sample_repo",
+      "imports": [["py_pkg/b.py", "py_pkg/a.py"]],
+      "calls": [
+        ["py_pkg/b.py::run", "py_pkg/a.py::greet"],
+        ["py_pkg/a.py::Helper.shout", "py_pkg/a.py::greet"]
+      ],
+      "inherit": []
+    },
+    {
+      "id": "fastapi_login",
+      "path": "tests/fixtures/flow_fastapi_login",
+      "imports": [
+        ["app/api/auth.py", "app/services/auth_service.py"],
+        ["app/services/auth_service.py", "app/repositories/user_repo.py"]
+      ],
+      "calls": [
+        ["app/api/auth.py::login", "app/services/auth_service.py::login"],
+        ["app/services/auth_service.py::login", "app/repositories/user_repo.py::find_by_username"]
+      ],
+      "inherit": []
+    },
+    {
+      "id": "spring_login",
+      "path": "tests/fixtures/flow_spring_login",
+      "imports": [
+        ["auth/AuthController.java", "auth/AuthService.java"],
+        ["auth/AuthService.java", "user/UserRepository.java"]
+      ],
+      "calls": [
+        ["auth/AuthController.java::AuthController.login", "auth/AuthService.java::AuthService.login"],
+        ["auth/AuthService.java::AuthService.login", "user/UserRepository.java::UserRepository.findByUsername"]
+      ],
+      "inherit": []
+    },
+    {
+      "id": "inherit_python",
+      "path": "tests/fixtures/inherit_repo",
+      "imports": [["animal/dog.py", "animal/base.py"]],
+      "calls": [],
+      "inherit": [["animal/dog.py::Dog", "animal/base.py::Animal", "extends"]]
+    },
+    {
+      "id": "inherit_java",
+      "path": "tests/fixtures/inherit_repo",
+      "imports": [],
+      "calls": [
+        [
+          "service/AuthController.java::AuthController.login",
+          "service/UserServiceImpl.java::UserServiceImpl.findUser"
+        ]
+      ],
+      "inherit": [
+        ["service/AuthController.java::AuthController", "service/BaseController.java::BaseController", "extends"],
+        ["service/UserServiceImpl.java::UserServiceImpl", "service/UserService.java::UserService", "implements"]
+      ]
+    },
+    {
+      "id": "inherit_ts",
+      "path": "tests/fixtures/inherit_repo",
+      "imports": [["ui/child.ts", "ui/base.ts"]],
+      "calls": [],
+      "inherit": [["ui/child.ts::FancyWidget", "ui/base.ts::WidgetBase", "extends"]]
+    }
+  ],
+  "flow_cases": [
+    {
+      "id": "fastapi_login",
+      "path": "tests/fixtures/flow_fastapi_login",
+      "question": "用户登录流程是什么？",
+      "must_contain": ["login", "find_by_username"]
+    },
+    {
+      "id": "spring_login",
+      "path": "tests/fixtures/flow_spring_login",
+      "question": "How does login work?",
+      "must_contain": ["AuthController", "AuthService", "findByUsername"]
+    }
+  ],
+  "impact_cases": [
+    {
+      "id": "animal_subtypes",
+      "path": "tests/fixtures/inherit_repo",
+      "seed": "animal/base.py::Animal",
+      "direction": "affected",
+      "must_contain": ["animal/dog.py::Dog"]
+    }
+  ],
+  "requests_symbol_queries": [
+    {
+      "id": "requests-session-request",
+      "question": "Where is Session.request defined?",
+      "file_suffix": "sessions.py",
+      "symbol": "request",
+      "parent": "Session"
+    },
+    {
+      "id": "requests-session-send",
+      "question": "Where is Session.send implemented?",
+      "file_suffix": "sessions.py",
+      "symbol": "send",
+      "parent": "Session"
+    },
+    {
+      "id": "requests-adapter-send",
+      "question": "Where is HTTPAdapter.send implemented?",
+      "file_suffix": "adapters.py",
+      "symbol": "send",
+      "parent": "HTTPAdapter"
+    },
+    {
+      "id": "requests-api-get",
+      "question": "Where is the top-level get() HTTP helper defined?",
+      "file_suffix": "api.py",
+      "symbol": "get",
+      "parent": null
+    },
+    {
+      "id": "requests-models-response",
+      "question": "Where is the Response class defined?",
+      "file_suffix": "models.py",
+      "symbol": "Response",
+      "parent": null
+    }
+  ]
+}

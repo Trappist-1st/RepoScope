@@ -22,6 +22,26 @@ def test_recall_precision_overlap_not_exact_string():
     assert precision_at_k(predicted, gold, k=5) == 0.5
 
 
+def test_mrr_first_hit_rank():
+    from eval.metrics import mrr_at_k, ordered_coverage, set_recall
+
+    gold = ["pkg/mod.py:10-20"]
+    assert mrr_at_k(["pkg/mod.py:1-40"], gold, k=5) == 1.0
+    assert mrr_at_k(["other.py:1-2", "pkg/mod.py:1-40"], gold, k=5) == 0.5
+    assert mrr_at_k(["other.py:1-2"], gold, k=5) == 0.0
+    assert set_recall(
+        ["app/api/auth.py::login"], ["auth.py::login"]
+    ) == 1.0
+    assert ordered_coverage(
+        ["AuthController.login", "AuthService.login", "findByUsername"],
+        ["AuthController", "AuthService", "findByUsername"],
+    ) == 1.0
+    assert ordered_coverage(
+        ["AuthService.login", "AuthController.login"],
+        ["AuthController", "AuthService"],
+    ) == 0.5
+
+
 def test_normalize_item_accepts_chinese_type_and_shorthand_spans():
     item = normalize_item(
         {

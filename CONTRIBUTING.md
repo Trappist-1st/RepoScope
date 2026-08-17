@@ -1,77 +1,78 @@
 # Contributing to RepoScope
 
-Thanks for considering a contribution. RepoScope is deliberately scoped —
-please read the "Product boundary" section in the [README](README.md) before
-proposing a feature. PRs that turn RepoScope into a chat UI or a coding agent
-will be declined regardless of quality; PRs that make the three core engines
-(KnowledgeGraph / FlowTracer / ArchitectureAnalyzer) more accurate, faster,
-or cover more languages are very welcome.
+Read the product boundary in the [README](README.md) first. PRs that turn RepoScope into a chat UI or a coding agent will be declined. PRs that make KnowledgeGraph / FlowTracer / ArchitectureAnalyzer more accurate, faster, or cover more languages are the point.
 
-## Ways to contribute
+## Good first issues
 
-- **Language support** — new tree-sitter grammars (Go, Rust, C/C++, Ruby, …)
-  under `app/parsing/`, with fixtures under `tests/fixtures/`.
-- **Flow Trace accuracy** — new call-resolution heuristics, fixtures that
-  reproduce a real framework's routing/DI conventions (see
-  `tests/fixtures/flow_spring_login`, `flow_fastapi_login` for the pattern).
-- **Architecture patterns** — new pattern detectors in
-  `app/intelligence/architecture/`.
-- **Bug reports** — please include the repo (or a minimal fixture) that
-  reproduces the issue; "wrong output on my private repo" without a
-  reproducible case is hard to act on.
+These are the usual first contributions for this kind of engine:
+
+1. **A new tree-sitter language** (see below) — Go, Rust, C/C++, Ruby, …
+2. **A flow fixture** that reproduces a real framework’s routing or DI (copy `tests/fixtures/flow_fastapi_login` or `flow_spring_login`)
+3. **A missed gold edge** — add the edge to `eval/gold/structure.json` and a unit test that fails on `main`
+4. **Docs-only** — a task-level example in the README that you actually ran
+
+Label suggestions for maintainers: `good first issue`, `language`, `flow-fixture`, `gold-edge`.
 
 ## Development setup
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # .venv\Scripts\activate on Windows
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest -q
 ```
 
-Optional retrieval / infra extras:
+Optional:
 
 ```bash
-pip install -e ".[dev,retrieval]"
-docker compose up -d
+pip install -e ".[dev,retrieval]"   # MiniLM + (Windows) pinned torch
+docker compose up -d                # Qdrant / Postgres / Redis
+python -m eval.run_benchmarks --skip-remote
 ```
+
+## Adding a language (highest-leverage path)
+
+End-to-end, one language per PR, fixture-backed.
+
+1. **Grammar** — add the `tree-sitter-<lang>` package in `pyproject.toml`.
+2. **Register** — `app/parsing/languages.py`:
+   - `AST_LANGUAGES`
+   - `SUPPORTED_EXTENSIONS`
+   - `_language_object()` / `get_parser()`
+3. **Definition query** — `app/parsing/ast_parser.py`: a tree-sitter query capturing `@name` + `@def` for functions, classes, methods. Register it in `_QUERIES`. Extend `_CLASS_NODE_TYPES` / `_METHOD_NODE_TYPES` / `_FUNCTION_NODE_TYPES` if the grammar uses new node types. Extract `bases` for inherit if the language has them.
+4. **Imports + calls** — `app/graph/builder.py`: import resolution (regex or AST) into the per-file import map; call-site extraction if the generic `name(` / `recv.method(` fallback is wrong for this language.
+5. **Fixture** — `tests/fixtures/<lang>_repo/` with at least:
+   - two files that import each other
+   - one cross-file call
+   - inherit/implements if the language has it
+6. **Tests** — parser extracts the right line ranges; graph has the import/call/inherit edges; add those edges to `eval/gold/structure.json`.
+7. **Docs** — one line on language coverage in the README.
+
+Do not add a language without a fixture. “Works on my private repo” is not reviewable.
+
+## Flow / architecture contributions
+
+- Flow: new call-resolution heuristics + a fixture that fails without them (`tests/helpers_flow.py` pattern).
+- Architecture: new detectors in `app/intelligence/architecture/patterns.py` with tests; `unknown` must remain a valid primary pattern.
 
 ## Before opening a PR
 
-1. **Add or update tests.** Every engine (KnowledgeGraph, FlowTracer,
-   ArchitectureAnalyzer) is fixture-driven — see `tests/fixtures/` for
-   examples of the expected shape. New behavior without a fixture-backed
-   test won't be merged.
-2. **Run the full suite:** `pytest -q`.
-3. **Keep evidence-backed outputs evidence-backed.** If you touch
-   FlowTracer or ArchitectureAnalyzer, every claim in the output should
-   still be traceable to a `file:line` or a graph edge — no
-   unattributed/LLM-hallucinated findings.
-4. **Don't commit generated artifacts.** `data/`, `eval/reports/`, and any
-   `*_retest*` / `exp_*` directories are for local runs only — they should
-   stay out of git (see `.gitignore`).
-5. **Keep PRs focused.** One engine or one concern per PR is much easier to
-   review than a sweep across the codebase.
+1. Tests for every engine you touch. No new behavior without a fixture-backed test.
+2. `pytest -q` green.
+3. Evidence stays evidence: FlowTracer / ArchitectureAnalyzer claims still map to `file:line` or a graph edge.
+4. Do not commit `data/`, `eval/reports/`, or generated indexes.
+5. One concern per PR.
 
-## Commit / PR conventions
+If you change gold or the harness, attach `eval/reports/latest.md` (not committed) in the PR description so numbers can be checked.
 
-- Conventional-commit-style prefixes are appreciated (`feat:`, `fix:`,
-  `docs:`, `test:`, `refactor:`) but not enforced by CI yet.
-- Link the issue you're addressing, or describe the motivating use case if
-  there isn't one yet.
-- CI (`pytest` across supported Python versions + `ruff check`) must be
-  green before review.
+## Commit / CI
 
-## Reporting security issues
+Conventional-commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`) are appreciated. CI is `pytest` + `ruff check`.
 
-Please do not open a public issue for a security vulnerability. Open a
-private security advisory on GitHub instead (Security tab → "Report a
-vulnerability"), or email the maintainer directly if that option isn't
-available yet.
+## Security
 
-## Code of conduct
+Do not open a public issue for a vulnerability. Use a GitHub security advisory, or email the maintainer.
 
-Be respectful, assume good faith, keep discussion focused on the technical
-merits. Maintainers reserve the right to close issues/PRs that don't fit the
-project's scope (see README's "out of scope" list) — this is about project
-focus, not about the contributor.
+## Conduct
+
+Be respectful, assume good faith. Maintainers will close out-of-scope PRs (chat UI, auto-PRs, unbounded agent loops) — that is focus, not a judgment of the contributor.

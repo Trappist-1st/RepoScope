@@ -6,11 +6,12 @@ Runs the same QA set under three retrieval modes:
   - bm25    (sparse only)
   - hybrid  (fusion + optional rerank)
 
-Metrics: Recall@5 / Precision@5 with file+line-range *overlap* matching.
+Metrics: Recall@5 / Precision@5 / MRR@5 with file+line-range *overlap* matching.
 
 Examples:
   python -m eval.run_retrieval_eval --compare-modes --hash-embedder
   python -m eval.run_retrieval_eval --compare-modes --backend qdrant
+  python -m eval.run_retrieval_eval --compare-modes --with-rerank
   python -m eval.run_retrieval_eval --dataset eval/datasets/qa_dataset.jsonl --compare-modes
 """
 
@@ -37,7 +38,7 @@ from app.retrieval.embedder import HashEmbedder
 from app.retrieval.rerank import IdentityReranker
 from app.retrieval.vector_store import create_vector_store
 from eval.dataset import QAItem, load_qa_dataset
-from eval.metrics import macro_average, precision_at_k, recall_at_k
+from eval.metrics import macro_average, mrr_at_k, precision_at_k, recall_at_k
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +56,7 @@ class PerQueryResult:
     predicted: list[str]
     recall: float
     precision: float
+    mrr: float
 
 
 @dataclass
@@ -63,6 +65,7 @@ class ModeSummary:
     n: int
     recall_at_5: float
     precision_at_5: float
+    mrr_at_5: float
     by_type: dict[str, dict[str, float]] = field(default_factory=dict)
     rows: list[PerQueryResult] = field(default_factory=list)
 
@@ -172,6 +175,7 @@ def run_mode(
                 predicted=predicted,
                 recall=recall_at_k(predicted, gold, k),
                 precision=precision_at_k(predicted, gold, k),
+                mrr=mrr_at_k(predicted, gold, k),
             )
         )
 
@@ -182,6 +186,7 @@ def run_mode(
             "n": float(len(subset)),
             "recall_at_5": macro_average([r.recall for r in subset]),
             "precision_at_5": macro_average([r.precision for r in subset]),
+            "mrr_at_5": macro_average([r.mrr for r in subset]),
         }
 
     return ModeSummary(
@@ -189,6 +194,7 @@ def run_mode(
         n=len(rows),
         recall_at_5=macro_average([r.recall for r in rows]),
         precision_at_5=macro_average([r.precision for r in rows]),
+        mrr_at_5=macro_average([r.mrr for r in rows]),
         by_type=by_type,
         rows=rows,
     )
@@ -200,11 +206,12 @@ def _fmt_pct(x: float) -> str:
 
 def print_comparison_table(summaries: list[ModeSummary]) -> None:
     print()
-    print("| Mode | N | Recall@5 | Precision@5 |")
-    print("|---|---:|---:|---:|")
+    print("| Mode | N | Recall@5 | Precision@5 | MRR@5 |")
+    print("|---|---:|---:|---:|---:|")
     for s in summaries:
         print(
-            f"| {s.mode} | {s.n} | {_fmt_pct(s.recall_at_5)} | {_fmt_pct(s.precision_at_5)} |"
+            f"| {s.mode} | {s.n} | {_fmt_pct(s.recall_at_5)} | "
+            f"{_fmt_pct(s.precision_at_5)} | {s.mrr_at_5:.3f} |"
         )
     print()
 
@@ -224,11 +231,11 @@ def print_comparison_table(summaries: list[ModeSummary]) -> None:
 
 def print_mode_detail(summary: ModeSummary) -> None:
     print("-" * 72)
-    print(f"mode={summary.mode}  R@5={summary.recall_at_5:.3f}  P@5={summary.precision_at_5:.3f}")
+    print(f"mode={summary.mode}  R@5={summary.recall_at_5:.3f}  P@5={summary.precision_at_5:.3f}  MRR@5={summary.mrr_at_5:.3f}")
     for row in summary.rows:
         print(
             f"  [{row.id}|{row.question_type}] "
-            f"R@5={row.recall:.2f} P@5={row.precision:.2f}"
+            f"R@5={row.recall:.2f} P@5={row.precision:.2f} MRR={row.mrr:.2f}"
         )
         print(f"    Q: {row.question}")
         print(f"    gold: {row.gold}")
@@ -258,7 +265,8 @@ def write_reports(
     table_rows = []
     for s in summaries:
         table_rows.append(
-            f"| {s.mode} | {s.n} | {_fmt_pct(s.recall_at_5)} | {_fmt_pct(s.precision_at_5)} |"
+            f"| {s.mode} | {s.n} | {_fmt_pct(s.recall_at_5)} | "
+            f"{_fmt_pct(s.precision_at_5)} | {s.mrr_at_5:.3f} |"
         )
 
     by_type_blocks: list[str] = []
@@ -267,12 +275,12 @@ def write_reports(
             continue
         by_type_blocks.append(f"### {s.mode}")
         by_type_blocks.append("")
-        by_type_blocks.append("| question_type | n | Recall@5 | Precision@5 |")
-        by_type_blocks.append("|---|---:|---:|---:|")
+        by_type_blocks.append("| question_type | n | Recall@5 | Precision@5 | MRR@5 |")
+        by_type_blocks.append("|---|---:|---:|---:|---:|")
         for qtype, stats in s.by_type.items():
             by_type_blocks.append(
                 f"| {qtype} | {int(stats['n'])} | {_fmt_pct(stats['recall_at_5'])} | "
-                f"{_fmt_pct(stats['precision_at_5'])} |"
+                f"{_fmt_pct(stats['precision_at_5'])} | {stats.get('mrr_at_5', 0):.3f} |"
             )
         by_type_blocks.append("")
 
@@ -302,8 +310,8 @@ def write_reports(
 
 ## Macro results
 
-| Mode | N | Recall@5 | Precision@5 |
-|---|---:|---:|---:|
+| Mode | N | Recall@5 | Precision@5 | MRR@5 |
+|---|---:|---:|---:|---:|
 {chr(10).join(table_rows)}
 
 {lift_note}
@@ -333,6 +341,7 @@ def write_reports(
                 "n": s.n,
                 "recall_at_5": s.recall_at_5,
                 "precision_at_5": s.precision_at_5,
+                "mrr_at_5": s.mrr_at_5,
                 "by_type": s.by_type,
                 "rows": [asdict(r) for r in s.rows],
             }
@@ -359,6 +368,11 @@ def main() -> None:
         "--compare-modes",
         action="store_true",
         help="Run vector / bm25 / hybrid and print a comparison table (recommended)",
+    )
+    parser.add_argument(
+        "--with-rerank",
+        action="store_true",
+        help="Also run hybrid+rerank (ignored with --hash-embedder)",
     )
     parser.add_argument("--k", type=int, default=5, help="Cutoff for Recall@k / Precision@k")
     parser.add_argument(
@@ -412,6 +426,22 @@ def main() -> None:
             workspace=workspace,
             k=args.k,
         )
+        summaries.append(summary)
+        print_mode_detail(summary)
+
+    if args.with_rerank and not args.hash_embedder:
+        service = build_service(config, use_hash=False, artifact_dir=artifact_dir)
+        summary = run_mode(
+            service,
+            dataset,
+            "hybrid",
+            skip_rerank=False,
+            fusion=args.fusion,
+            artifact_dir=artifact_dir,
+            workspace=workspace,
+            k=args.k,
+        )
+        summary.mode = "hybrid+rerank"
         summaries.append(summary)
         print_mode_detail(summary)
 
