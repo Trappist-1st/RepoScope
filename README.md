@@ -184,11 +184,22 @@ Details: [docs/architecture.md](docs/architecture.md).
 **In scope:** indexing, symbol resolution, evidence-backed context.  
 **Out of scope:** coding agent, chat UI, automatic edits / PRs.
 
+Two optional switches, both off by default and independently reversible:
+
+| Env var | Effect |
+|---|---|
+| `REPOSCOPE_USE_ADVANCED_KG=true` | Cascading call resolution with a confidence score and `file:line` per edge, AST structure hashing for incremental re-index, ~23% smaller `context_explore` payload |
+| `REPOSCOPE_KG_STORAGE=sqlite` | One `reposcope.db` per repo instead of loose JSON artifacts |
+
+Turning them off restores the original pipeline byte for byte — the point is
+that a regression can be bisected to one switch. Measured trade-offs:
+[docs/architecture.md](docs/architecture.md).
+
 ---
 
 ## Benchmarks (reproducible)
 
-Snapshot (2026-08-15, MiniLM, `--real-embed`): **18/18** gold graph edges; FlowTracer **2/2** login fixtures; Reviewer **4/4** fabricated citations caught; `psf/requests` full index **3.7 s** / **14.5k LOC**; warm `context_explore` **p50 49 ms**. On `requests`, one `context_explore` vs grep+full-file reads was **17× fewer tokens / 47→1 tool calls** (chars/4 proxy). Hybrid RRF did **not** beat dense-only Recall@5 on this 18-question mix — details and everything we refuse to claim: **[BENCHMARKS.md](BENCHMARKS.md)**.
+Snapshot (2026-08-17, default config): **18/18** gold graph edges; FlowTracer **2/2** login fixtures; Reviewer **4/4** fabricated citations caught; `psf/requests` full index **1.7 s** / **14.5k LOC**; warm `context_explore` **p50 8.8 ms**. On `requests`, one `context_explore` vs grep+full-file reads was **15× fewer tokens / 47→1 tool calls** (chars/4 proxy), or **20×** with `use_advanced_kg` on. Retrieval, separately (2026-08-15, MiniLM, `--real-embed`): hybrid RRF did **not** beat dense-only Recall@5 on that 18-question mix — details and everything we refuse to claim: **[BENCHMARKS.md](BENCHMARKS.md)**.
 
 | Axis | What we publish | What we do **not** publish yet |
 |---|---|---|
@@ -210,10 +221,15 @@ Raw output: `eval/reports/latest.md` (gitignored). Narrative + tables: [BENCHMAR
 
 Indexed files = supported languages, tests/venv excluded. Full methodology: [eval/README.md](eval/README.md).
 
-| Corpus | Indexed files | LOC | First index | Artifact | Notes |
-|---|---:|---:|---:|---:|---|
-| `psf/requests` (shallow) | 50 | 14 556 | **3.7 s** | 1.79 MB | 867 call / 41 inherit edges |
-| FastAPI login fixture | 7 | 30 | 18 ms | 10 KB | Warm `context_explore` p50 **49 ms** |
+| Corpus | Indexed files | LOC | First index | Re-index, comment-only edit | Artifact | Notes |
+|---|---:|---:|---:|---:|---:|---|
+| `psf/requests` (shallow) | 50 | 14 556 | **1.7 s** | 902 ms (`merge`) | 1.86 MB | 867 call / 41 inherit edges |
+| FastAPI login fixture | 7 | 30 | 21 ms | 9 ms | 11 KB | Warm `context_explore` p50 **8.8 ms** |
+
+With `use_advanced_kg` on, a comment-only edit to `requests` re-indexes in
+**110 ms** instead of 902 ms — the AST structure hash is unchanged, so the graph
+is reused (`structure_cached`). The trade is a slower first index (5.1 s) and a
+slightly larger artifact. Both directions are in [BENCHMARKS.md](BENCHMARKS.md).
 
 There is **no** “5000-file Spring Boot, X seconds” row yet. To produce one:
 

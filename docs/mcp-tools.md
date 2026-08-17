@@ -4,7 +4,9 @@ Server: `python -m app.mcp.server` (stdio). Shared logic: `app/mcp/service.py`. 
 
 **Default tool for “how does X work / what should I read before editing”:** `context_explore`.
 
-Always read `meta.warnings` and `meta.graph_update_mode` (`full` | `merge` | `cached`). Prefer `file::symbol` when a short name is ambiguous.
+Always read `meta.warnings` and `meta.graph_update_mode` (`full` | `merge` | `cached` | `structure_cached`). Prefer `file::symbol` when a short name is ambiguous.
+
+`structure_cached` means the file bytes changed but the AST structure did not (comments, formatting), so the previous graph was reused. It only appears when `use_advanced_kg` is on.
 
 All tools take `repo_url` (git URL or local path) and `force_reindex: bool = false`. None of them modify the repository.
 
@@ -26,6 +28,13 @@ One call: seed symbols + must-read snippets + call paths + blast radius.
 ```json
 { "repo_url": "/path/to/repo", "query": "How does login work?" }
 ```
+
+With `use_advanced_kg` on, the same facts come back in about 23% fewer tokens:
+`report_markdown` is empty (everything it said is in the structured fields), and
+a seed that also appears in `must_read` drops its duplicated snippet while
+keeping its rank and citation. Blast-radius hits gain an `evidence` span
+pointing at the line the call was observed on. Read `must_read` for source,
+`seeds` for ranking.
 
 ---
 

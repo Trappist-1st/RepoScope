@@ -48,7 +48,8 @@ Do **not** start with whole-repo dumps or blind file walks when these tools are 
 - Treat architecture patterns as heuristics (`unknown` is valid).
 - Out of scope: editing code, opening PRs, running the repo in a sandbox, multi-turn chat product UX.
 - If `meta.warnings` mentions `audit_backend: in_memory`, note that run history is not durable.
-- `meta.graph_update_mode` tells you how the index synced: `cached` / `merge` / `full`.
+- `meta.graph_update_mode` tells you how the index synced: `cached` / `structure_cached` / `merge` / `full`. `structure_cached` means only comments or formatting moved, so the graph was reused.
+- `context_explore` may return an empty `report_markdown`. That is the token-lean mode, not a failure: read `seeds`, `must_read`, `call_paths`, and `blast_radius` instead. A seed with an empty `snippet` has its source under `must_read` at the same `symbol_ref`.
 
 ## Quick examples
 

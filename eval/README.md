@@ -25,6 +25,34 @@ python -m eval.run_perf --bucket small --skip-latency
 
 Official retrieval (MiniLM): drop `--hash-embedder`. Medium/large clones (`sqlalchemy`, `django`) are opt-in — do not quote empty buckets.
 
+## Knowledge-graph modes (A/B)
+
+`run_benchmarks` runs one KG mode per invocation and records it under `kg_mode`
+in the report, so a mixed run can never be mistaken for a comparison.
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--advanced-kg` | off | Run with `config.use_advanced_kg` on |
+| `--kg-storage {json,sqlite}` | `json` | Artifact backend for this run |
+| `--ab` | off | Also measure the token proxy in the *other* KG mode and print the delta |
+| `--out-prefix NAME` | `latest` | Write `eval/reports/NAME.{json,md}` instead of overwriting `latest` |
+
+```bash
+python -m eval.run_benchmarks --out-prefix legacy
+python -m eval.run_benchmarks --advanced-kg --ab --out-prefix advanced
+python -m eval.run_benchmarks --advanced-kg --kg-storage sqlite --out-prefix advanced_sqlite
+```
+
+Quality metrics (gold-edge recall, flow coverage, impact, reviewer catch rate)
+must come out identical across all three. If they do not, the switch has
+changed behaviour it was not supposed to change — that is the regression signal.
+
+**Reproducibility.** `HashEmbedder` used to hash tokens with the builtin
+`hash()`, which CPython salts per process, so smoke Recall@5 moved run to run
+(0.611 / 0.667 / 0.778 for identical inputs were observed). It now uses blake2b
+and repeated runs are bit-identical. Retrieval rows recorded before that fix are
+not comparable with current ones.
+
 ## Layout
 
 ```
@@ -39,8 +67,8 @@ eval/
 ├── run_tool_eval.py
 ├── run_mcp_tasks.py
 ├── run_perf.py
-├── run_benchmarks.py             # combined snapshot
-└── reports/                      # gitignored
+├── run_benchmarks.py             # combined snapshot; --advanced-kg / --kg-storage / --ab
+└── reports/                      # gitignored (latest.*, or whatever --out-prefix names)
 ```
 
 ## 1. QA dataset schema (JSONL)

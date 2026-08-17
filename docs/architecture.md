@@ -7,7 +7,7 @@ Repository
     → Git checkout + per-file SHA-256
     → tree-sitter AST (definitions) + AST-aligned chunks
     → extract simple names → resolve to symbol_ref
-    → JSON artifacts under data/artifacts/<repo_id>/
+    → JSON artifacts under data/artifacts/<repo_id>/   (or one reposcope.db)
     → MCP / HTTP  (context_explore, impact, flow, architecture, search)
 ```
 
@@ -26,6 +26,10 @@ A `symbol_ref` is `file/path.py::Class.method` (or `file::function`).
 | Definitions | `definitions.json` | Per-file AST defs (name, kind, lines, bases) |
 | Knowledge graph | `knowledge_graph.json` | Same facts projected for FlowTracer / ArchitectureAnalyzer |
 | Structure hashes | `structure_hashes.json` | Per-file AST structure digest; only written when `use_advanced_kg` is on |
+
+With `kg_storage=sqlite`, the knowledge graph and chunks move into `reposcope.db`
+(tables `kg_meta` / `kg_nodes` / `kg_edges` / `chunks`); `graph.json`,
+`definitions.json`, and `structure_hashes.json` stay as files.
 
 ### Node kinds
 
@@ -100,13 +104,27 @@ later query-pushdown pass needs no migration.
 Loading falls back across backends in both directions, so switching the
 setting does not force a reindex.
 
-Measured honestly, SQLite currently **costs** more than it saves and is off by
-default: artifacts are larger on small repos (~70 KB page and index floor
-against ~11–27 KB of JSON, and still ~7% larger on `psf/requests`), and warm
-query latency is roughly 2× the JSON path because each call reopens the file
-and re-materialises the graph. It pays off once the graph is large enough that
-rewriting the whole artifact on every small edit dominates — and it is the
-prerequisite for pushing queries down into SQL instead of scanning in memory.
+Measured honestly, SQLite currently **costs** more than it saves, which is why
+it is off by default:
+
+| | JSON | SQLite |
+|---|---:|---:|
+| Artifact, `flow_fastapi_login` | 11 KB | 72 KB |
+| Artifact, `psf/requests` | 1.92 MB | 2.06 MB |
+| `context_explore` p50, fixture | 10.5 ms | 79.8 ms |
+| `requests` first index | 5083 ms | 4724 ms |
+| `requests` comment-only re-index | 110 ms | 116 ms |
+
+The small-repo artifact gap is SQLite's page and index floor, which does not
+grow with the repo — by `requests` it is down to 7%. The latency gap is the
+one that matters and it is per-call, not per-byte: every tool call reopens the
+file and re-materialises the whole graph, and on a 7-file fixture that fixed
+cost is the entire measurement. Indexing itself is a wash.
+
+So this is groundwork, not a win yet. It pays off once the graph is large
+enough that rewriting the whole artifact on every small edit dominates, and it
+is the prerequisite for pushing queries down into SQL instead of scanning in
+memory. Until a connection is reused across calls, prefer the JSON default.
 
 ---
 
@@ -149,6 +167,17 @@ is unchanged is cosmetic and skips graph work entirely.
 
 Files with no recorded previous hash count as structural. Over-rebuilding is
 the safe direction.
+
+The hashes live in `structure_hashes.json` next to the other artifacts and are
+only written when `use_advanced_kg` is on, so the legacy path keeps producing
+exactly the artifact set it always did.
+
+On `psf/requests` a comment-only edit re-indexes in **110 ms** as
+`structure_cached`, against **902 ms** for the same edit through `merge`. The
+cost is a ~3× slower first index (5.1 s vs 1.7 s), because every call site now
+runs the cascade instead of a single lookup. That trade is only good if you
+re-index far more often than you index from scratch, which is why the switch
+defaults to off.
 
 Merge gates (see `app/ingestion/incremental.py`):
 

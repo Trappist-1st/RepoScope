@@ -169,6 +169,10 @@ Includes auto-sync of a cached tiny index. Not a BFS-only microbenchmark.
 | `context_explore` | 49.1 | 75.4 | 94.4 |
 | `trace_flow` | 38.2 | 61.6 | 90.9 |
 
+**Superseded.** Most of this was a redundant artifact rewrite on every warm
+query; see [Re-measurement, 2026-08-17](#re-measurement-2026-08-17) for the
+current p50 of 8.8 ms.
+
 ### Token proxy
 
 Estimate = chars/4. Not a live agent.
@@ -190,6 +194,10 @@ Ratio grep/MCP = **0.07×**. The pack is larger than the whole fixture. **Do not
 | grep + full-file reads (46 files) | 120 823 | 47 |
 
 Ratio grep/MCP = **17.2×** tool-call count 47 → 1. This is the row that is allowed in a README *with the proxy paragraph attached*. It is still not SWE-bench.
+
+**Superseded.** This row predates the `HashEmbedder` determinism fix below and
+is not reproducible. The current figures are 15.4× (legacy) and 20.4×
+(`use_advanced_kg`) — see [Re-measurement, 2026-08-17](#re-measurement-2026-08-17).
 
 ### Token proxy A/B: `use_advanced_kg`
 
@@ -220,6 +228,68 @@ and repeated runs are bit-identical. **Retrieval rows measured before this fix
 are not reproducible and should not be compared against current ones.**
 
 ---
+
+## Re-measurement, 2026-08-17
+
+Same host, `eval/reports/legacy.md` (defaults) and `eval/reports/advanced.md`.
+Structure quality is identical to the 2026-08-15 snapshot — 18/18 gold edges,
+2/2 flow cases, 4/4 reviewer catches — in every mode. What moved is perf, and
+the reason is not "the refactor made everything faster", so the deltas are
+itemized below rather than folded into the tables above.
+
+### Perf, default config
+
+| | 2026-08-15 | 2026-08-17 | Why |
+|---|---:|---:|---|
+| `requests` first index | 3656 ms | **1732 ms** | Run-to-run / FS-cache variance on the same machine; nothing in the ingest path was optimized |
+| `requests` incremental (`merge`) | 3552 ms | 902 ms | Same |
+| `context_explore` p50 (fixture) | 49.1 ms | **8.8 ms** | Real fix: the pipeline used to rewrite every artifact even when a warm query changed nothing. It now skips the write when the mode is `cached` and the artifacts are already on disk |
+
+The p50 improvement applies to both KG modes and to both storage backends —
+it is in `IngestionPipeline.run`, not behind a switch.
+
+### Perf, `use_advanced_kg` on
+
+| Corpus | First index | Comment-only re-index | Artifact |
+|---|---:|---:|---:|
+| `requests`, legacy | 1732 ms | 902 ms (`merge`) | 1.86 MB |
+| `requests`, advanced | 5083 ms | **110 ms** (`structure_cached`) | 1.92 MB |
+
+The cascade costs roughly 3× on a cold index: every call site now runs six
+resolution strategies instead of one lookup. It buys back an 8× faster
+re-index on edits that do not change structure, because the AST hash proves the
+existing edges are still correct. Whether that trades well depends entirely on
+your edit/index ratio — for an agent re-syncing a working tree constantly it
+does, for a one-shot CI index it does not.
+
+### Perf, `kg_storage=sqlite`
+
+Same advanced mode, only the backend differs (`eval/reports/advanced_sqlite.md`).
+
+| | JSON | SQLite |
+|---|---:|---:|
+| Artifact, `flow_fastapi_login` | 11 KB | 72 KB |
+| Artifact, `psf/requests` | 1.92 MB | 2.06 MB |
+| `context_explore` p50, fixture | 10.5 ms | **79.8 ms** |
+| `requests` first index | 5083 ms | 4724 ms |
+| `requests` comment-only re-index | 110 ms | 116 ms |
+
+**SQLite is currently a loss, and we are saying so.** Indexing is a wash and
+the artifact gap closes as the repo grows (72 KB vs 11 KB on a fixture is the
+page/index floor; 7% on `requests`), but warm query latency is ~8× because
+every tool call reopens the database and re-materialises the whole graph. On a
+7-file fixture that fixed cost *is* the measurement. It is committed as
+groundwork for SQL-side query pushdown, not as a speedup. Quality metrics are
+identical to the JSON run.
+
+### Token proxy shifted with the embedder fix
+
+The `requests` ratio moved from **17.2×** to **15.4×** in legacy mode. This is
+not a regression in the pack: `_facade` in the harness always uses
+`HashEmbedder`, so changing its hash function changed which seeds retrieval
+picks, which changed the snippets in the pack. The pre-fix 17.2× was drawn from
+a per-process-salted ranking and is not reproducible. 15.4× (legacy) and 20.4×
+(advanced) are.
 
 ## Roadmap (so this file does not freeze as a fixture-only story)
 

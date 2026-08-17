@@ -40,7 +40,7 @@ End-to-end, one language per PR, fixture-backed.
    - `SUPPORTED_EXTENSIONS`
    - `_language_object()` / `get_parser()`
 3. **Definition query** — `app/parsing/ast_parser.py`: a tree-sitter query capturing `@name` + `@def` for functions, classes, methods. Register it in `_QUERIES`. Extend `_CLASS_NODE_TYPES` / `_METHOD_NODE_TYPES` / `_FUNCTION_NODE_TYPES` if the grammar uses new node types. Extract `bases` for inherit if the language has them.
-4. **Imports + calls** — `app/graph/builder.py`: import resolution (regex or AST) into the per-file import map; call-site extraction if the generic `name(` / `recv.method(` fallback is wrong for this language.
+4. **Imports + calls** — `app/graph/builder.py`: import resolution (regex or AST) into the per-file import map; call-site extraction if the generic `name(` / `recv.method(` fallback is wrong for this language. The builder has two resolution paths — the legacy one and the cascade behind `use_advanced_kg` (`SymbolResolver.resolve_call`). A new language must work in both; the cascade needs the call site's line number and, for `recv.method()`, the receiver.
 5. **Fixture** — `tests/fixtures/<lang>_repo/` with at least:
    - two files that import each other
    - one cross-file call
@@ -63,11 +63,24 @@ Do not add a language without a fixture. “Works on my private repo” is not r
 4. Do not commit `data/`, `eval/reports/`, or generated indexes.
 5. One concern per PR.
 
+If you touch graph building, ingestion, or artifact IO, check both knowledge-graph
+modes — the optional paths are off by default, so a plain `pytest` run does not
+prove they still work:
+
+```bash
+python -m eval.run_benchmarks --skip-remote --out-prefix legacy
+python -m eval.run_benchmarks --skip-remote --advanced-kg --kg-storage sqlite --out-prefix advanced
+```
+
+Gold-edge recall, flow coverage, and reviewer catch rate must match between the
+two. A new switch is only worth having if turning it off restores the old
+behaviour exactly.
+
 If you change gold or the harness, attach `eval/reports/latest.md` (not committed) in the PR description so numbers can be checked.
 
 ## Commit / CI
 
-Conventional-commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`) are appreciated. CI is `pytest` + `ruff check`.
+Conventional-commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`) are appreciated. CI runs `pytest` on Python 3.11 and 3.12 — that is the gate. `ruff check` also runs but is currently non-blocking; keep new code clean anyway so it can be made blocking.
 
 ## Security
 

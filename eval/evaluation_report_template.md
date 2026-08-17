@@ -77,6 +77,7 @@ Source: `python -m eval.run_human_eval -n 20` → `eval/reports/human_eval_summa
 | Avg tokens after Context Engine | TBD |
 | Context trim ratio (real repo) | TBD% (see `context_budget_exp.md`) |
 | Incremental vs full index time | TBD / TBD |
+| KG mode (`kg_mode` in the report JSON) | `use_advanced_kg=` __ / storage `json`\|`sqlite` |
 
 ---
 
